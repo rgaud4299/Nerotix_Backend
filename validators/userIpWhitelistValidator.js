@@ -12,13 +12,19 @@ const ipAddressRule = body("ip_address")
 
 const statusRule = body("status")
   .optional()
-  .isIn(["Active", "Inactive"]).withMessage("Status must be either 'active' or 'inactive'");
+  .isIn(["Active", "Inactive"]).withMessage("Status must be either 'Active' or 'Inactive'");
 
 const idParamRule = param("id")
   .isInt({ gt: 0 }).withMessage("Valid numeric ID is required");
   
 const userid= param("user_id").notEmpty().withMessage("User ID is required")
 
+
+const userIdValidation = param("user_id")
+  .notEmpty()
+  .withMessage("User ID is required")
+  .isInt()
+  .withMessage("User ID must be an integer");
 
 
 // ✅ Centralized validation handler
@@ -30,7 +36,7 @@ const handleValidation = (req, res, next) => {
       success: false,
       statusCode: 422,
       message: errors.array()[0].msg, // first error only
-      errors: errors.array()
+      
     });
   }
   next();
@@ -38,7 +44,6 @@ const handleValidation = (req, res, next) => {
 
 // Validators
 const addIpValidation = [
-  userIdRule,
   ipAddressRule,
   statusRule,
   handleValidation
@@ -56,7 +61,7 @@ const deleteIpValidation = [
 ];
 
 const getAllIpValidation = [
-   userid,
+   userIdValidation,
    handleValidation
 
 ];

@@ -14,7 +14,10 @@ dayjs.extend(timezone)
 // 1. Generate or Regenerate Token
 exports.generateToken = async (req, res) => {
   try {
-    const { user_id, token_type } = req.body;
+  const {  token_type } = req.body;
+ const user_id  = parseInt(req.user.id) 
+
+
     if (!user_id || !token_type) {
       return error(
         res,
@@ -23,10 +26,17 @@ exports.generateToken = async (req, res) => {
         422
       );
     }
+    const userExists = await prisma.users.findUnique({
+      where: { id: parseInt(user_id) },
+    });
 
+    if (!userExists) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
     // Generate MD5 token (random string + timestamp for uniqueness)
     const rawString = `${user_id}-${token_type}-${Date.now()}-${Math.random()}`;
     const newToken = crypto.createHash("md5").update(rawString).digest("hex");
+
 
     // Check if token already exists for user
     const existing = await prisma.user_tokens.findFirst({
@@ -49,7 +59,7 @@ exports.generateToken = async (req, res) => {
           user_id,
           token_type,
           token: newToken,
-          status: "Inactive", 
+          status: "Inactive",
           created_at: dayjs().toDate(),
           updated_at: dayjs().toDate(),
         },
@@ -74,25 +84,34 @@ exports.generateToken = async (req, res) => {
 };
 
 // 2. Change Status (Activate / Inactivate)
+
 exports.changeTokenStatus = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
+     const user_id  = parseInt(req.user.id) 
 
-    // if (!id || isNaN(id)) {
-    //   return error(res, "Invalid token id", RESPONSE_CODES.VALIDATION_ERROR, 422);
-    // }
-    // if (!["Active", "Inactive"].includes(status)) {
-    //   return error(res, "Invalid status value", RESPONSE_CODES.VALIDATION_ERROR, 422);
-    // }
 
-     const existing = await prisma.user_tokens.findUnique({
-      where: { id },
+    if (!id || isNaN(id)) {
+      return error(res, "Invalid token Id", RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+    if (!["Active", "Inactive"].includes(status)) {
+      return error(res, "Invalid status value", RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+
+  const existing = await prisma.user_tokens.findFirst({
+      where: { id ,user_id},
     });
-
-    if (!existing) {
+     if (!existing) {
       return error(res, "Token not found", RESPONSE_CODES.NOT_FOUND, 404);
     }
+   const existing2 = await prisma.user_tokens.findFirst({
+  where: {  id,token_type: "api" },
+});
+
+if (!existing2) {
+  return error(res, "token_type must be 'api'", RESPONSE_CODES.NOT_FOUND, 404);
+}
 
     const updated = await prisma.user_tokens.update({
       where: { id },

@@ -3,9 +3,7 @@ const db = new prisma();
 const dayjs = require("dayjs");
 const { success, error } = require("../utils/response");
 const { RESPONSE_CODES } = require("../utils/helper");
-const { logAuditTrail } = require("../services/auditTrailService");
 const { safeParseInt, convertBigIntToString } = require('../utils/parser');
-const { validationResult } = require('express-validator');
 
 
 const utc = require("dayjs/plugin/utc");
@@ -21,23 +19,34 @@ exports.update = async (req, res) => {
   try {
     const {
       url: rawUrl = "",
-      user_id: rawUserId,
       event = "",
       secret_key: rawSecretKey = "",
       status = "active",
     } = req.body;
+const user_id = String(req.user?.id || ""); // Always as String
+console.log("User ID:", user_id);
 
-    const url = (rawUrl || "").trim();
-    const user_id = (rawUserId || "").trim();
-    const secret_key = (rawSecretKey || "").trim();
+const url = (rawUrl || "").trim();
+const secret_key = (rawSecretKey || "").trim();
 
-    if (!user_id) {
-      return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
+if (!user_id) {
+  return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
+}
 
-    // Allow empty or valid URL only
-    if (url && !/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/i.test(url)) {
-       return error(res, "Invalid webhook URL", RESPONSE_CODES.VALIDATION_ERROR, 422);
+// Allow empty or valid URL only
+if (url && !/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/i.test(url)) {
+  return error(res, "Invalid webhook URL", RESPONSE_CODES.VALIDATION_ERROR, 422);
+}
+
+
+
+// Check if user exists in DB
+const existingUser =await db.users.findUnique({
+      where: { id: parseInt(user_id) },
+    });
+
+if (!existingUser) {
+  return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
 }
 
     const updatePayload = { 

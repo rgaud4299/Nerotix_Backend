@@ -1,18 +1,12 @@
-const { check, body } = require("express-validator");
-const { validationResult } = require("express-validator");
+const { check } = require("express-validator");
+const { param, body } = require("express-validator"); 
+const { handleValidation } = require("../utils/handleValidation");
 
-const handleValidation = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({
-      success: false,
-      message: errors.array()[0].msg,
-      errors: errors.array(),
-    });
-  }
-  next();
-};
 
+
+const idParamRule = param("id")
+  .isInt({ gt: 0 }).withMessage("Valid numeric ID is required");
+  
 // 🔹 Change Status Validation
 exports.changeStatusValidation = [
   check("auto_status_check")
@@ -28,6 +22,11 @@ exports.addApiValidation = [
   check("api_name").notEmpty().withMessage("API name is required"),
   handleValidation,
 ];
+
+exports.IdParamValidation = [
+idParamRule,  handleValidation,
+];
+
 
 // 🔹 Update API Validation
 exports.updateAuthValidation = [

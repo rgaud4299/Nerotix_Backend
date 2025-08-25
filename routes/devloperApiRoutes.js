@@ -8,20 +8,27 @@ const ctrl = require('../controllers/webhookController');
 const validate = require('../validators/webhookValidator');
 const controller = require("../controllers/userTokensController");
 const { generateTokenValidation, TokenchangeStatusValidation } = require("../validators/userTokensValidation");
+const createSecuredRoutes = require("../utils/createSecuredRoutes");
+const authMiddleware = require('../middleware/auth');
+const { authorizeRole } = require("../middleware/authorizeRole");
 
 
-// all whitelisted IPs
+const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
+ // all whitelisted IPs
 router.post("/whitelisted/add",addIpValidation, userIpWhitelistController.addIp);  // Add new whitelist entry
-router.get("/whitelisted/get-list/:user_id", getAllIpValidation,userIpWhitelistController.getAllIp);      // GET all whitelisted IPs
+router.get("/whitelisted/get-list", userIpWhitelistController.getAllIp);      // GET all whitelisted IPs
 router.put("/whitelisted/changestatus/:id", changeStatusValidation,userIpWhitelistController.changeStatus);          // Update whitelist entry
 router.delete("/whitelisted/delete/:id",deleteIpValidation, userIpWhitelistController.deleteIp);       // Delete whitelist entry
- 
 // webhook
 router.put('/webhook/update',validate.update, ctrl.update);
-
 // userTokens
 router.post("/userTokens/generate", generateTokenValidation, controller.generateToken);
 router.put("/userTokens/status/:id", TokenchangeStatusValidation, controller.changeTokenStatus);
+
+});
+
+router.use('/', securedRoutes);
+
 
 
 module.exports = router;

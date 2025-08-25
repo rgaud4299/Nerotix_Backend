@@ -7,9 +7,9 @@ async function verifyTokenMiddleware(req, res, next) {
   try {
     const authHeader = req.headers["authorization"];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Unauthenticated" });
+      return res.status(401).json({ message: "User Unauthenticated" });
     }
-
+    
     const token = authHeader.substring(7);
 
     // 1️ JWT verify (basic signature check)
@@ -41,12 +41,16 @@ async function verifyTokenMiddleware(req, res, next) {
     if (accessToken.status === "inactive") {
       return res.status(401).json({ message: "Unauthorized (Inactive Token)" });
     }
+  
 
     // 5️ Role check
     if (!["admin", "user" ].includes(accessToken.user.role)) {
       return res.status(403).json({ message: "Unauthorized Role" });
     }
 
+  if (!accessToken.user_id) {
+  return res.status(422).json({ message: "User id not available in token ,user_id is required" });
+    }
     // 6️ Attach user details to request
     req.user = {
       id: accessToken.user_id,
@@ -60,5 +64,7 @@ async function verifyTokenMiddleware(req, res, next) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
+
 
 module.exports = verifyTokenMiddleware;

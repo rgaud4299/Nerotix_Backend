@@ -1,6 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const { validationResult } = require("express-validator");
 const dayjs = require("dayjs");
 const { success, error } = require("../utils/response");
 const { RESPONSE_CODES } = require("../utils/helper");
@@ -18,9 +17,19 @@ dayjs.extend(tz);
 
 // Add new IP
 exports.addIp = async (req, res) => {
-  const { user_id, ip_address } = req.body;
+  const {  ip_address } = req.body;
+const user_id = String(req.user?.id || ""); // Always as String
+
   try {
-    // 1️⃣ Check if user already has 3 IPs
+   
+    const existingUser =await prisma.users.findUnique({
+          where: { id: parseInt(user_id) },
+        });
+    
+    if (!existingUser) {
+      return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+    
     const count = await prisma.user_ip_whitelist.count({
       where: { user_id },
     });
@@ -30,11 +39,10 @@ exports.addIp = async (req, res) => {
         res,
         "Maximum 3 IP addresses allowed per user",
         RESPONSE_CODES.VALIDATION_ERROR,
-        422
+        429
       );
     }
 
-    // 2️⃣ Check if the same IP already exists for this user
     const exists = await prisma.user_ip_whitelist.findFirst({
       where: { user_id, ip_address },
     });
@@ -48,12 +56,11 @@ exports.addIp = async (req, res) => {
       );
     }
 
-    // 3️⃣ Add new IP
     const newIp = await prisma.user_ip_whitelist.create({
       data: {
         user_id,
         ip_address,
-        status: "inactive",
+        status: "Inactive",
         created_at: dayjs().toDate(),
         updated_at: dayjs().toDate(),
       },
@@ -80,11 +87,21 @@ exports.addIp = async (req, res) => {
 exports.getAllIp = async (req, res) => {
 
   try {
-    const { user_id } = req.params; 
+    const user_id = String(req.user?.id || ""); // Always as String
 
-    if (!user_id) {
+   if (!user_id) {
       return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
     }
+    // 1️⃣ Check if user already has 3 IPs
+    // Check if user exists in DB
+    const existingUser =await prisma.users.findUnique({
+          where: { id: parseInt(user_id) },
+        });
+    
+    if (!existingUser) {
+      return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+   
 
     // get all IPs for this user
     const ipList = await prisma.user_ip_whitelist.findMany({
@@ -168,10 +185,7 @@ exports.changeStatus = async (req, res) => {
 
 // Delete IP
 exports.deleteIp = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-  }
+
 
   const { id } = req.params;
 
@@ -181,7 +195,7 @@ exports.deleteIp = async (req, res) => {
     });
 
     if (!ip) {
-      return error(res, "IP not found", RESPONSE_CODES.NOT_FOUND, 404);
+      return error(res, "Invalid IP ID", RESPONSE_CODES.NOT_FOUND, 404);
     }
 
     await prisma.user_ip_whitelist.delete({
