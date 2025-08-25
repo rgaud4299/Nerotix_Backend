@@ -21,10 +21,10 @@ exports.update = async (req, res) => {
       url: rawUrl = "",
       event = "",
       secret_key: rawSecretKey = "",
-      status = "active",
+      status = "Active",
     } = req.body;
+
 const user_id = String(req.user?.user_id || ""); // Always as String
-console.log("User ID:", user_id);
 
 const url = (rawUrl || "").trim();
 const secret_key = (rawSecretKey || "").trim();
@@ -48,29 +48,63 @@ const existingUser =await db.users.findUnique({
 if (!existingUser) {
   return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
 }
-
-    const updatePayload = { 
-      user_id,
-      url,
-      event,
-      secret_key,
-      status,
-      updated_at: dayjs().toDate(),
-    };
-
-    // Upsert (update if exists, else create)
+   // Check if webhook already exists for this user
     let webhook = await db.webhooks.findFirst({ where: { user_id } });
 
     if (webhook) {
+      // 🔹 If URL is same as already saved, throw error
+      if (url && webhook.url === url) {
+        return error(res, "This Webhook URL already exists", RESPONSE_CODES.DUPLICATE, 409);
+      }
+
+      // Otherwise update
       webhook = await db.webhooks.update({
-        where: { id: webhook.id },   
-        data: updatePayload,
+        where: { id: webhook.id },
+        data: {
+          user_id,
+          url,
+          event,
+          secret_key,
+          status,
+          updated_at: dayjs().toDate(),
+        },
       });
     } else {
+      // Create new webhook
       webhook = await db.webhooks.create({
-        data: { ...updatePayload, created_at: dayjs().toDate() },
+        data: {
+          user_id,
+          url,
+          event,
+          secret_key,
+          status,
+          created_at: dayjs().toDate(),
+          updated_at: dayjs().toDate(),
+        },
       });
     }
+    // const updatePayload = { 
+    //   user_id,
+    //   url,
+    //   event,
+    //   secret_key,
+    //   status,
+    //   updated_at: dayjs().toDate(),
+    // };
+
+    // // Upsert (update if exists, else create)
+    // let webhook = await db.webhooks.findFirst({ where: { user_id } });
+
+    // if (webhook) {
+    //   webhook = await db.webhooks.update({
+    //     where: { id: webhook.id },   
+    //     data: updatePayload,
+    //   });
+    // } else {
+    //   webhook = await db.webhooks.create({
+    //     data: { ...updatePayload, created_at: dayjs().toDate() },
+    //   });
+    // }
 
     const formattedWebhook = convertBigIntToString({
       id: webhook.id,
@@ -91,3 +125,46 @@ if (!existingUser) {
 };
 
 
+exports.getWebhook = async (req, res) => {
+  try {
+    const user_id = String(req.user?.user_id || ""); // Always as String
+
+    if (!user_id) {
+      return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+
+    // Check if user exists in DB
+    const existingUser = await db.users.findUnique({
+      where: { id: parseInt(user_id) },
+    });
+
+    if (!existingUser) {
+      return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+
+    // Get webhook for this user
+    const webhook = await db.webhooks.findFirst({
+      where: { user_id },
+    });
+
+    if (!webhook) {
+      return error(res, "Webhook not found", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+
+    const formattedWebhook = convertBigIntToString({
+      id: webhook.id,
+      user_id: webhook.user_id,
+      url: webhook.url,
+      event: webhook.event,
+      secret_key: webhook.secret_key,
+      status: webhook.status,
+      created_at: webhook.created_at ? ISTFormat(webhook.created_at) : null,
+      updated_at: webhook.updated_at ? ISTFormat(webhook.updated_at) : null,
+    });
+
+    return success(res, "Webhook fetched successfully", formattedWebhook);
+  } catch (err) {
+    console.error("getWebhook error:", err);
+    return error(res, "Failed to fetch webhook", RESPONSE_CODES.FAILED, 500);
+  }
+};

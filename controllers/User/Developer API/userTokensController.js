@@ -14,8 +14,8 @@ dayjs.extend(timezone)
 // 1. Generate or Regenerate Token
 exports.generateToken = async (req, res) => {
   try {
-  const {  token_type } = req.body;
- const user_id  = parseInt(req.user.id) 
+    const { token_type } = req.body;
+    const user_id = parseInt(req.user.user_id)
 
 
     if (!user_id || !token_type) {
@@ -89,7 +89,7 @@ exports.changeTokenStatus = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
-     const user_id  = parseInt(req.user.id) 
+    const user_id = parseInt(req.user.user_id)
 
 
     if (!id || isNaN(id)) {
@@ -99,24 +99,26 @@ exports.changeTokenStatus = async (req, res) => {
       return error(res, "Invalid status value", RESPONSE_CODES.VALIDATION_ERROR, 422);
     }
 
-  const existing = await prisma.user_tokens.findFirst({
-      where: { id ,user_id},
+    const existing = await prisma.user_tokens.findFirst({
+      where: { id, user_id },
     });
-     if (!existing) {
-      return error(res, "Token not found", RESPONSE_CODES.NOT_FOUND, 404);
-    }
-   const existing2 = await prisma.user_tokens.findFirst({
-  where: {  id,token_type: "api" },
-});
 
-if (!existing2) {
-  return error(res, "token_type must be 'api'", RESPONSE_CODES.NOT_FOUND, 404);
-}
+    if (!existing) {
+      return error(res, "Api Token not found", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+
+    if (!existing.token_type==="api") {
+      return error(res, "token_type must be 'api'", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+   
+    const newStatus = existing.status === "Active" ? "Inactive" : "Active";
 
     const updated = await prisma.user_tokens.update({
       where: { id },
-      data: { status, updated_at: dayjs().toDate() },
+      data: { status: newStatus, updated_at: dayjs().toDate() },
     });
+
+   
 
     const formatted = convertBigIntToString({
       id: updated.id,
@@ -128,9 +130,46 @@ if (!existing2) {
       updated_at: ISTFormat(updated.updated_at),
     });
 
-    return success(res, "Status updated successfully");
+    return success(res, "Status updated successfully",formatted.status);
   } catch (err) {
     console.error(err);
     return error(res, "Failed to update status");
+  }
+};
+
+exports.getTokensByUserId = async (req, res) => {
+  try {
+    const user_id = parseInt(req.user.user_id);
+    const token_type = 'api'
+    if (!user_id || isNaN(user_id)) {
+      return error(res, "Invalid user ID", RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+
+    // Fetch tokens for this user
+    const token = await prisma.user_tokens.findMany({
+      where: { user_id, token_type },
+    });
+
+    if (!token || token.length === 0) {
+      return error(res, "No API tokens found for this user", RESPONSE_CODES.NOT_FOUND, 404);
+    }
+
+    // Format tokens
+    const formatted = token.map((t) =>
+      convertBigIntToString({
+        id: t.id,
+        user_id: t.user_id,
+        token: t.token,
+        token_type: t.token_type,
+        status: t.status,
+        created_at: ISTFormat(t.created_at),
+        updated_at: ISTFormat(t.updated_at),
+      })
+    );
+
+    return success(res, " API Tokens fetched successfully", formatted);
+  } catch (err) {
+    console.error("getTokensByUserId error:", err);
+    return error(res, "Failed to fetch tokens", RESPONSE_CODES.FAILED, 500);
   }
 };
