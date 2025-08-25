@@ -18,7 +18,7 @@ dayjs.extend(tz);
 // Add new IP
 exports.addIp = async (req, res) => {
   const {  ip_address } = req.body;
-const user_id = String(req.user?.id || ""); // Always as String
+const user_id = String(req.user?.user_id || ""); // Always as String
 
   try {
    
@@ -87,7 +87,7 @@ const user_id = String(req.user?.id || ""); // Always as String
 exports.getAllIp = async (req, res) => {
 
   try {
-    const user_id = String(req.user?.id || ""); // Always as String
+    const user_id = String(req.user?.user_id || ""); // Always as String
 
    if (!user_id) {
       return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);

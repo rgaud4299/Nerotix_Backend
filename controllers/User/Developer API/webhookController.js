@@ -23,7 +23,7 @@ exports.update = async (req, res) => {
       secret_key: rawSecretKey = "",
       status = "active",
     } = req.body;
-const user_id = String(req.user?.id || ""); // Always as String
+const user_id = String(req.user?.user_id || ""); // Always as String
 console.log("User ID:", user_id);
 
 const url = (rawUrl || "").trim();

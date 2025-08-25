@@ -53,7 +53,7 @@ async function verifyTokenMiddleware(req, res, next) {
     }
     // 6️ Attach user details to request
     req.user = {
-      id: accessToken.user_id,
+      user_id: accessToken.user_id,
       role: accessToken.user.role,
       token_type: accessToken.token_type,
     };
