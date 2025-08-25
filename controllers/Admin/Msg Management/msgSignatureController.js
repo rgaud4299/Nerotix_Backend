@@ -4,9 +4,9 @@ const { validationResult } = require('express-validator');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
-const { logAuditTrail } = require('../services/auditTrailService');
-const { RESPONSE_CODES } = require('../utils/helper');
-const { success, error } = require('../utils/response');
+const { logAuditTrail } = require('../../../services/auditTrailService');
+const { RESPONSE_CODES } = require('../../../utils/helper');
+const { success, error } = require('../../../utils/response');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

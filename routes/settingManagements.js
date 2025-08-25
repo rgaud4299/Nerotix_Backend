@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const createSecuredRoutes = require('../utils/createSecuredRoutes');
-const serviceSwitchingController = require('../controllers/serviceSwitchingController');
+const serviceSwitchingController = require('../controllers/Admin/Setting Managements/serviceSwitchingController');
 const authMiddleware = require('../middleware/auth');
 const {authorizeRole}=require('../middleware/authorizeRole')
 
@@ -12,7 +12,7 @@ const {
   deleteServiceSwitchingValidation
 } = require('../validators/serviceSwitchingValidator');
 
-const { apiCreate, apiChangeStatus, apiSoftDelete, getAllApis, updateApi, updatekeyvalue } = require("../controllers/addApiController");
+const { apiCreate, apiChangeStatus, apiSoftDelete, getAllApis, updateApi, updatekeyvalue } = require("../controllers/Admin/Setting Managements/addApiController");
 const { addApiValidation, updateAuthValidation, updatekeyvalueValidation, IdParamValidation } = require("../validators/AddApisValidator");
 
 

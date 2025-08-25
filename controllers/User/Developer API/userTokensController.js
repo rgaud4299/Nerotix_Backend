@@ -1,8 +1,8 @@
 const crypto = require("crypto");
 const dayjs = require("dayjs");
-const { success, error } = require("../utils/response");
-const { RESPONSE_CODES } = require("../utils/helper");
-const { safeParseInt, convertBigIntToString } = require('../utils/parser');
+const { success, error } = require("../../../utils/response");
+const { RESPONSE_CODES } = require("../../../utils/helper");
+const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 const ISTFormat = (d) => (d ? dayjs(d).tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss') : null);
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();

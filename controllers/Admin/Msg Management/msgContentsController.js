@@ -4,11 +4,11 @@ const { validationResult } = require('express-validator');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
-const { logAuditTrail } = require('../services/auditTrailService');
-const { RESPONSE_CODES } = require('../utils/helper');
-const { getNextSerial, reorderSerials } = require('../utils/serial');
-const { success, error } = require('../utils/response');
-const { safeParseInt, convertBigIntToString } = require('../utils/parser');
+const { logAuditTrail } = require('../../../services/auditTrailService');
+const { RESPONSE_CODES } = require('../../../utils/helper');
+const { getNextSerial, reorderSerials } = require('../../../utils/serial');
+const { success, error } = require('../../../utils/response');
+const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

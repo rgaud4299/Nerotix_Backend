@@ -1,9 +1,9 @@
 const prisma = require('@prisma/client').PrismaClient;
 const db = new prisma();
 const dayjs = require("dayjs");
-const { success, error } = require("../utils/response");
-const { RESPONSE_CODES } = require("../utils/helper");
-const { safeParseInt, convertBigIntToString } = require('../utils/parser');
+const { success, error } = require("../../../utils/response");
+const { RESPONSE_CODES } = require("../../../utils/helper");
+const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
 
 const utc = require("dayjs/plugin/utc");

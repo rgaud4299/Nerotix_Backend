@@ -1,11 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { validationResult } = require('express-validator');
-const { logAuditTrail } = require('../services/auditTrailService');
-const { RESPONSE_CODES } = require('../utils/helper');
-const { success, error } = require('../utils/response');
-const { safeParseInt, convertBigIntToString } = require('../utils/parser');
-const { getNextSerial, reorderSerials } = require('../utils/serial');
+const { logAuditTrail } = require('../../../services/auditTrailService');
+const { RESPONSE_CODES } = require('../../../utils/helper');
+const { success, error } = require('../../../utils/response');
+const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
+const { getNextSerial, reorderSerials } = require('../../../utils/serial');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');

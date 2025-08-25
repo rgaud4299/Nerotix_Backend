@@ -5,9 +5,9 @@ const authMiddleware  = require('../middleware/auth');
 const upload = require('../middleware/uploads');
 
 // Controllers
-const productCategoryController = require('../controllers/productCategoryController');
-const productController = require('../controllers/productController');
-const productPriceController = require('../controllers/productPriceController');
+const productCategoryController = require('../controllers/Admin/Product Management/productCategoryController');
+const productController = require('../controllers/Admin/Product Management/productController');
+const productPriceController = require('../controllers/Admin/Product Management/productPriceController');
 
 // Validators 
 const {

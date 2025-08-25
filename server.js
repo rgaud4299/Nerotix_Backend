@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/api/v1', authRoutes, userRoutes);
-app.use('/api/v1/devloperApi',devloperAPi);
+app.use('/api/v1/devloper-api',devloperAPi);
 app.use('/api/v1/product-management', productManagementRoutes);
 app.use('/api/v1/setting-management', settingManagementRoutes);
 app.use('/api/v1/msg-management', msgManagementRoutes);

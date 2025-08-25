@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const userIpWhitelistController = require("../controllers/userIpWhitelistController");
+const userIpWhitelistController = require("../controllers/User/Developer API/userIpWhitelistController");
 const { addIpValidation ,
   changeStatusValidation,
   deleteIpValidation,getAllIpValidation} = require("../validators/userIpWhitelistValidator");
-const ctrl = require('../controllers/webhookController');
+const ctrl = require('../controllers/User/Developer API/webhookController');
 const validate = require('../validators/webhookValidator');
-const controller = require("../controllers/userTokensController");
+const controller = require("../controllers/User/Developer API/userTokensController");
 const { generateTokenValidation, TokenchangeStatusValidation } = require("../validators/userTokensValidation");
 const createSecuredRoutes = require("../utils/createSecuredRoutes");
 const authMiddleware = require('../middleware/auth');
@@ -15,10 +15,10 @@ const { authorizeRole } = require("../middleware/authorizeRole");
 
 const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
  // all whitelisted IPs
-router.post("/whitelisted/add",addIpValidation, userIpWhitelistController.addIp);  // Add new whitelist entry
-router.get("/whitelisted/get-list", userIpWhitelistController.getAllIp);      // GET all whitelisted IPs
-router.put("/whitelisted/changestatus/:id", changeStatusValidation,userIpWhitelistController.changeStatus);          // Update whitelist entry
-router.delete("/whitelisted/delete/:id",deleteIpValidation, userIpWhitelistController.deleteIp);       // Delete whitelist entry
+router.post("/whitelisted-ip/add",addIpValidation, userIpWhitelistController.addIp);  // Add new whitelist entry
+router.get("/whitelisted-ip/get-list", userIpWhitelistController.getAllIp);      // GET all whitelisted IPs
+router.put("/whitelisted-ip/changestatus/:id", changeStatusValidation,userIpWhitelistController.changeStatus);          // Update whitelist entry
+router.delete("/whitelisted-ip/delete/:id",deleteIpValidation, userIpWhitelistController.deleteIp);       // Delete whitelist entry
 // webhook
 router.put('/webhook/update',validate.update, ctrl.update);
 // userTokens

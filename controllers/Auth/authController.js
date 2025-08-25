@@ -6,8 +6,8 @@ const prisma = new PrismaClient();
 const dayjs = require("dayjs");
 
 
-const { generateToken, verifyToken } = require('../utils/jwt');
-const { success, error } = require('../utils/response');
+const { generateToken, verifyToken } = require('../../utils/jwt');
+const { success, error } = require('../../utils/response');
 
 const {
   randomUUID,
@@ -17,7 +17,7 @@ const {
   getClientIp,
   useragent,
   RESPONSE_CODES,
-} = require('../utils/helper');
+} = require('../../utils/helper');
 
 
 //REGISTER 

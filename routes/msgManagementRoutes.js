@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const createSecuredRoutes = require('../utils/createSecuredRoutes');
 
-const controller = require('../controllers/msgApiController');
-const signatureController = require('../controllers/msgSignatureController');
-const msgContentsController = require('../controllers/msgContentsController');
+const controller = require('../controllers/Admin/Msg Management/msgApiController');
+const signatureController = require('../controllers/Admin/Msg Management/msgSignatureController');
+const msgContentsController = require('../controllers/Admin/Msg Management/msgContentsController');
 const authMiddleware = require('../middleware/auth');
 
 
