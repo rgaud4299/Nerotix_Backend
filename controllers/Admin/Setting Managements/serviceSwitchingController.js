@@ -10,6 +10,9 @@ const { getNextSerial, reorderSerials } = require('../../../utils/serial');
 const { success, error } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
+
+
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -102,7 +105,7 @@ exports.getServiceSwitchingList = async (req, res) => {
     const formattedData = convertBigIntToString(data).map(item => {
       let purchaseText = '';
       if (item.flat_per === 'flat') purchaseText = `Surcharge @ ${item.commission_surcharge} ₹/Txn`;
-      if (item.flat_per === 'percent') purchaseText = `Commission @ ${item.commission_surcharge} %`;
+      if (item.flat_per === 'percent') purchaseText =` Commission @ ${item.commission_surcharge} %`;
 
       return {
         id: item.id.toString(),
@@ -219,7 +222,7 @@ exports.updateServiceSwitching = async (req, res) => {
       action: 'update',
       user_id: req.user?.id || null,
       ip_address: req.ip,
-      remark: `Service Switching updated for API Code ${api_code}`,
+      remark:` Service Switching updated for API Code ${api_code}`,
       updated_by: req.user?.id || null,
       status: 'Updated'
     }).catch(err => console.error('Audit log error:', err));
@@ -306,7 +309,7 @@ exports.changeServiceSwitchingStatus = async (req, res) => {
       action: 'update',
       user_id: req.user?.id || null,
       ip_address: req.ip,
-      remark: `Service Switching status changed to ${status.toUpperCase()}`,
+      remark:` Service Switching status changed to ${status.toUpperCase()}`,
       updated_by: req.user?.id || null,
       status
     }).catch(err => console.error('Audit log error:', err));
@@ -318,4 +321,3 @@ exports.changeServiceSwitchingStatus = async (req, res) => {
     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
   }
 };
-

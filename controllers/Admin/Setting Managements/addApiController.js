@@ -71,7 +71,7 @@ exports.apiCreate = async (req, res) => {
          deleted_at: newApi.deleted_at ? ISTFormat(newApi.deleted_at) : null
        });
    
-       return success(res, "API saved successfully");
+       return success(res, "API saved successfully",formattedApi);
   } catch (err) {
         console.error(err);
        return error(res, "API saved failed", err);
@@ -193,7 +193,7 @@ exports.getAllApis = async (req, res) => {
       })
     );
 
-    return success(res, "APIs fetched successfully", total
+    return success(res, "APIs fetched successfully", total,formattedApis
     );
   } catch (err) {
     console.error(err);

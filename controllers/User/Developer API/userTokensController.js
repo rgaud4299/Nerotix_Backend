@@ -130,7 +130,7 @@ exports.changeTokenStatus = async (req, res) => {
       updated_at: ISTFormat(updated.updated_at),
     });
 
-    return success(res, "Status updated successfully",formatted.status);
+    return success(res, "Status updated successfully",);
   } catch (err) {
     console.error(err);
     return error(res, "Failed to update status");
@@ -151,7 +151,7 @@ exports.getTokensByUserId = async (req, res) => {
     });
 
     if (!token || token.length === 0) {
-      return error(res, "No API tokens found for this user", RESPONSE_CODES.NOT_FOUND, 404);
+      return error(res, "No Api Tokens Found ", RESPONSE_CODES.NOT_FOUND, 404);
     }
 
     // Format tokens

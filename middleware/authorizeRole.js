@@ -9,7 +9,7 @@ const authorizeRole = (allowedRoles = []) => {
       }
 
       if (!allowedRoles.includes(userRole)) {
-        return res.status(403).json({ message: ` Unauthorized access ,Role must be ${userRole} ` });
+        return res.status(403).json({ message: ` Unauthorized access ,Role must be ${allowedRoles[0]} ` });
       }
 
       next();

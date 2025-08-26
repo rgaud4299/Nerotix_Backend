@@ -48,7 +48,7 @@ exports.addMsgContent = async (req, res) => {
         serial_no: nextSerial,
         message_type,
         ...sendFlags,
-        sms_template_id: safeParseInt(req.body.sms_template_id),
+        sms_template_id: req.body.sms_template_id,
         sms_content,
         whatsapp_content,
         mail_subject: req.body.mail_subject,
@@ -156,7 +156,7 @@ exports.updateMsgContent = async (req, res) => {
       content.whatsapp_content === whatsapp_content &&
       content.mail_content === mail_content &&
       content.notification_content === notification_content &&
-      content.sms_template_id === safeParseInt(req.body.sms_template_id) &&
+      content.sms_template_id === req.body.sms_template_id &&
       content.mail_subject === req.body.mail_subject &&
       content.notification_title === req.body.notification_title &&
       content.keywords === req.body.keywords &&
@@ -174,7 +174,7 @@ exports.updateMsgContent = async (req, res) => {
       data: {
         message_type,
         ...sendFlags,
-        sms_template_id: convertBigIntToString(req.body.sms_template_id),
+        sms_template_id: req.body.sms_template_id,
         sms_content,
         whatsapp_content,
         mail_subject: req.body.mail_subject,

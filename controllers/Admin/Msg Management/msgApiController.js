@@ -10,6 +10,18 @@ const { success, error } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 const { RESPONSE_CODES } = require('../../../utils/helper');
 
+// const { PrismaClient } = require('@prisma/client');
+// const prisma = new PrismaClient();
+// const { validationResult } = require('express-validator');
+// const dayjs = require('dayjs');
+// const utc = require('dayjs/plugin/utc');
+// const timezone = require('dayjs/plugin/timezone');
+// const { logAuditTrail } = require('../services/auditTrailService');
+// const { RESPONSE_CODES } = require('../utils/helper');
+// const { getNextSerial, reorderSerials } = require('../utils/serial');
+// const { success, error } = require('../utils/response');
+// const { safeParseInt, convertBigIntToString } = require('../utils/parser');
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -257,7 +269,7 @@ exports.updateMsgApi = async (req, res) => {
         action: 'update',
         user_id: req.user?.id || null,
         ip_address: req.ip,
-        remark: `Messaging API "${api_name}" updated`,
+        remark:` Messaging API "${api_name}" updated`,
         updated_by: req.user?.id || null,
         status
       });
@@ -301,7 +313,7 @@ exports.deleteMsgApi = async (req, res) => {
         action: 'delete',
         user_id: req.user?.id,
         ip_address: req.ip,
-        remark: `Messaging API deleted`,
+        remark:` Messaging API deleted`,
         deleted_by: req.user?.id || null,
         status: 'Deleted'
       }).catch(err => console.error('Audit log failed:', err));
@@ -320,44 +332,56 @@ exports.deleteMsgApi = async (req, res) => {
 // change status of Messaging API
 exports.changeMsgApiStatus = async (req, res) => {
   const id = safeParseInt(req.params.id);
-  if (!id || id <= 0) {
-    return error(res, 'Message API Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+
+  if (!id || isNaN(id) || id <= 0) {
+    return error(res, 'Invalid or missing Message API ID', RESPONSE_CODES.VALIDATION_ERROR, 422);
   }
 
   try {
-    // Fetch the API from DB
+    // Current record fetch
     const api = await prisma.msg_apis.findUnique({ where: { id } });
-    if (!api) return error(res, 'Message API Not Found', RESPONSE_CODES.NOT_FOUND, 404);
+    if (!api) {
+      return error(res, 'Message API not found', RESPONSE_CODES.NOT_FOUND, 404);
+    }
 
-    // Toggle status: 'Active' <-> 'Inactive' (case-sensitive)
-    const newStatus = api.status === 'Active' ? 'Inactive' : 'Active';
+    // Toggle logic
+    const newStatus = api.status.toLowerCase() === 'active' ? 'inactive' : 'active';
 
-    const updatedAt = dayjs().tz('Asia/Kolkata').toDate();
-
-    // Update status in DB
-    await prisma.msg_apis.update({
+    // Update DB
+    const updatedApi = await prisma.msg_apis.update({
       where: { id },
-      data: { status: newStatus, updated_at: updatedAt },
+      data: {
+        status: newStatus,
+        updated_at: new Date()
+      }
     });
 
-    // Log audit trail
-    await logAuditTrail({
+    // Optional audit trail
+    logAuditTrail({
       table_name: 'msg_apis',
       row_id: id,
       action: 'update',
-      user_id: req.user?.id || null,
+      user_id: req.user?.id ? Number(req.user.id) : null,
       ip_address: req.ip,
-      remark: `Messaging API "${api.api_name}" status changed from "${api.status}" to "${newStatus}"`,
+      remark: `Status toggled to ${newStatus}`,
       updated_by: req.user?.id || null,
       status: newStatus
+    }).catch(err => console.error('Audit log failed:', err));
+
+    convertBigIntToString(updatedApi);
+
+    // Yahan par success ke saath updated record ka data bhi bhejo
+    return res.status(200).json({
+      success: true,
+      message:` Message API status changed to ${newStatus}`,
+      data: {
+        id: updatedApi.id.toString(),
+        status: updatedApi.status
+      }
     });
 
-    return success(res, `Message API status changed to ${newStatus}`);
-
   } catch (err) {
-    console.error('toggleMsgApiStatus error:', err);
+    console.error('changeMsgApiStatus error:', err);
     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
   }
 };
-
-

@@ -16,14 +16,14 @@ const { apiCreate, apiChangeStatus, apiSoftDelete, getAllApis, updateApi, update
 const { addApiValidation, updateAuthValidation, updatekeyvalueValidation, IdParamValidation } = require("../validators/AddApisValidator");
 
 
-const securedRoutes = createSecuredRoutes([authMiddleware,authorizeRole(["admin"])], (router) => {
+const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
   // Add Service Switching
   router.post('/service-switching/add', addServiceSwitchingValidation, serviceSwitchingController.addServiceSwitching);
   router.post('/service-switching/get-list', serviceSwitchingController.getServiceSwitchingList);
   router.put('/service-switching/update/:id', updateServiceSwitchingValidation, serviceSwitchingController.updateServiceSwitching);
   router.get('/service-switching/byid/:id', serviceSwitchingController.getServiceSwitchingById);
   router.delete('/service-switching/delete/:id', deleteServiceSwitchingValidation, serviceSwitchingController.deleteServiceSwitching);
-  router.put('/service-switching/change-status/:id', changeServiceSwitchingStatusValidation, serviceSwitchingController.changeServiceSwitchingStatus);
+  router.patch('/service-switching/change-status/:id', changeServiceSwitchingStatusValidation, serviceSwitchingController.changeServiceSwitchingStatus);
 
   router.post('/apis/add', addApiValidation, apiCreate);
   router.patch("/apis/changeStatus/:id", IdParamValidation, apiChangeStatus);
