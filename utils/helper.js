@@ -21,9 +21,8 @@ const maskEmail = (email) => {
 // Send OTP and Save to DB
 const sendOtpRegistration = async (receiver, type, user_id) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log(`OTP for ${receiver} [${type}] is: ${otp}`);
 
-  await prisma.otp_verifications.create({
+const OtpRegistration=  await prisma.otp_verifications.create({
     data: {
       user_id: user_id,
       otp: parseInt(otp),
@@ -35,6 +34,7 @@ const sendOtpRegistration = async (receiver, type, user_id) => {
     }
   });
 
+  console.log(`OTP for ${receiver} [${type}] is: ${otp}`);
   return otp;
 };
 

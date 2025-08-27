@@ -11,6 +11,7 @@ const { generateTokenValidation, TokenchangeStatusValidation } = require("../val
 const createSecuredRoutes = require("../utils/createSecuredRoutes");
 const authMiddleware = require('../middleware/auth');
 const { authorizeRole } = require("../middleware/authorizeRole");
+const { generateTokenOTP } = require("../controllers/User/Developer API/utils/generateTokenOtp");
 
 
 
@@ -29,7 +30,11 @@ router.post("/tokens/generate", generateTokenValidation, controller.generateToke
 router.get("/tokens/get-list", controller.getTokensByUserId);
 router.put("/tokens/status/:id", TokenchangeStatusValidation, controller.changeTokenStatus);
 
+router.get("/tokens/send-otp",generateTokenOTP);
+router.post("/tokens/verify-otp", controller.generateToken);
+
 });
+
 
 router.use('/', securedRoutes);
 

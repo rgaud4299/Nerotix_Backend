@@ -12,6 +12,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 const ISTFormat = (d) => (d ? dayjs(d).tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss') : null);
@@ -85,6 +86,82 @@ exports.addProduct = async (req, res) => {
 };
 
 // GET PRODUCT LIST 
+// exports.getProductList = async (req, res) => {
+//   try {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return error(
+//         res,
+//         errors.array()[0].msg,
+//         RESPONSE_CODES.VALIDATION_ERROR,
+//         422
+//       );
+//     }
+
+//     const offset = safeParseInt(req.body.offset, 0);
+//     const limit = safeParseInt(req.body.limit, 10);
+//     const searchValue = (req.body.searchValue || '').trim();
+//     const statusRaw = req.body.ProductStatus || '';
+//     const statusFilter = statusRaw.toLowerCase();
+
+//     const validStatuses = ['active', 'inactive'];
+
+//     const where = {
+//       AND: [
+//         searchValue
+//           ? { name: { contains: searchValue, mode: 'insensitive' } }
+//           : null,
+//         validStatuses.includes(statusFilter)
+//           ? { status: { equals: statusFilter, mode: 'insensitive' } }
+//           : null
+//       ].filter(Boolean)
+//     };
+
+
+//     const [total, filteredCount, data] = await Promise.all([
+//       prisma.products.count(),
+//       prisma.products.count({ where }),
+//       prisma.products.findMany({
+//         where,
+//         skip: offset * limit,
+//         take: limit,
+//         orderBy: { serial_no: 'asc' },
+//         include: { product_categories: { select: { id: true, name: true } } }
+//       })
+//     ]);
+
+
+//     const formattedData = convertBigIntToString(data).map((p) => ({
+//       id: String(p.id),
+//       serial_no: safeParseInt(p.serial_no),
+//       category_id: p.category_id ? String(p.category_id) : null,
+//       category_name: p.product_categories
+//         ? p.product_categories.name
+//         : null,
+//       name: p.name,
+//       slug: p.slug,
+//       description: p.description || null,
+//       icon: p.icon || null,
+//       status: p.status || null,
+//       created_at: ISTFormat(p.created_at),
+//       updated_at: ISTFormat(p.updated_at)
+//     }));
+
+
+//     return res.status(200).json({
+//       success: true,
+//       statusCode: 1,
+//       message: 'Data fetched successfully',
+//       recordsTotal: total,
+//       recordsFiltered: filteredCount,
+//       data: formattedData
+//     });
+//   } catch (err) {
+//     console.error('getProductList error:', err);
+//     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
+//   }
+// };
+
 exports.getProductList = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -101,10 +178,12 @@ exports.getProductList = async (req, res) => {
     const limit = safeParseInt(req.body.limit, 10);
     const searchValue = (req.body.searchValue || '').trim();
     const statusRaw = req.body.ProductStatus || '';
-    const statusFilter = statusRaw.toLowerCase();
+    const categoryId = req.body.categoryId ? String(req.body.categoryId) : '';
 
+    const statusFilter = statusRaw.toLowerCase();
     const validStatuses = ['active', 'inactive'];
 
+    // where condition banate waqt categoryId bhi check hoga (agar bheja gaya ho)
     const where = {
       AND: [
         searchValue
@@ -112,10 +191,12 @@ exports.getProductList = async (req, res) => {
           : null,
         validStatuses.includes(statusFilter)
           ? { status: { equals: statusFilter, mode: 'insensitive' } }
+          : null,
+        categoryId
+          ? { category_id: safeParseInt(categoryId) }
           : null
       ].filter(Boolean)
     };
-
 
     const [total, filteredCount, data] = await Promise.all([
       prisma.products.count(),
@@ -128,7 +209,6 @@ exports.getProductList = async (req, res) => {
         include: { product_categories: { select: { id: true, name: true } } }
       })
     ]);
-
 
     const formattedData = convertBigIntToString(data).map((p) => ({
       id: String(p.id),
@@ -146,7 +226,6 @@ exports.getProductList = async (req, res) => {
       updated_at: ISTFormat(p.updated_at)
     }));
 
-
     return res.status(200).json({
       success: true,
       statusCode: 1,
@@ -157,9 +236,10 @@ exports.getProductList = async (req, res) => {
     });
   } catch (err) {
     console.error('getProductList error:', err);
-    return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
-  }
+    return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
+  }
 };
+
 
 // GET PRODUCT BY ID 
 exports.getProductById = async (req, res) => {

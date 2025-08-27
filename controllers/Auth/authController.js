@@ -42,8 +42,8 @@ exports.register = async (req, res) => {
       );
     }
 
+    
     const hashed = await bcrypt.hash(password, 10);
-
     const now = new Date();
     const tempUser = await prisma.temp_users.create({
       data: {
