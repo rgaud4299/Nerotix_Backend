@@ -1,19 +1,41 @@
-const { sendOtpRegistration } = require("../helper");
 const { PrismaClient } = require('@prisma/client');
 const db= new PrismaClient();
 
+// Send OTP and Save to DB
+const sendOtpRegistration = async (receiver, type, user_id) => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+const OtpRegistration=  await db.otp_verifications.create({
+    data: {
+      user_id: user_id,
+      otp: parseInt(otp),
+      type: type,
+      expires_at: new Date(Date.now() + 5 * 60 * 1000),
+      is_verified: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+console.log( OtpRegistration);
 
-async function sendOtp(user_data, msg_content_id) {
-  if (!user_data) {
+  console.log(`OTP for ${receiver} [${type}] is: ${otp}`);
+  return otp;
+};
+
+async function sendOtp(msg_data) {
+
+  console.log('msg_data.user_id',msg_data.user_id);
+  
+  if (!msg_data) {
     return {
       status_code: 0,
-      message: "User not found",
+      message: "Invalid message data",
     };
   }
 
+  // Message template (from msg_contents table )
   const msg_contents_data = await db.msg_contents.findFirst({
-    where: { id: msg_content_id },
+    where: { id: msg_data.msg_cont_id },
   });
 
   if (!msg_contents_data) {
@@ -24,28 +46,34 @@ async function sendOtp(user_data, msg_content_id) {
   }
 
   const otpTargets = [];
+  const otps={}
 
-  if (msg_contents_data.send_sms === "Yes") {
-     sendOtpRegistration(user_data.mobile_no, "mobile", user_data.id);
+  // 👉 SMS
+  if (msg_contents_data.send_sms === "Yes" && msg_data.mobile_no) {
+     otps.mobile_Otp=await sendOtpRegistration(msg_data.mobile_no, "mobile",msg_data.user_id);
     otpTargets.push("mobile number");
   }
 
-  if (msg_contents_data.send_email === "Yes") {
-    sendOtpRegistration(user_data.email, "email", user_data.id);
+  // 👉 Email
+  if (msg_contents_data.send_email === "Yes" && msg_data.email) {
+   otps.email_Otp=  await sendOtpRegistration(msg_data.email, "email",msg_data.user_id);
     otpTargets.push("email id");
   }
 
-  if (msg_contents_data.send_whatsapp === "Yes") {
-     sendOtpRegistration(user_data.mobile_no, "whatsapp", user_data.id);
+  // 👉 WhatsApp
+  if (msg_contents_data.send_whatsapp === "Yes" && msg_data.mobile_no) {
+    otps.whatsapp_Otp= await sendOtpRegistration(msg_data.mobile_no, "whatsapp",msg_data.user_id);
     otpTargets.push("WhatsApp");
   }
 
   if (msg_contents_data.send_notification === "Yes") {
-    sendOtpRegistration(user_data.id, "notification", user_data.id);
+    otps.notification_Otp= await sendOtpRegistration(msg_data.mobile_no, "notification",msg_data.user_id);
     otpTargets.push("notification");
   }
 
-  // Build dynamic message
+
+
+  // ✅ Dynamic success message
   let dynamicMessage = "";
   if (otpTargets.length === 1) {
     dynamicMessage = `Verification OTP sent to your registered ${otpTargets[0]}`;
@@ -56,10 +84,14 @@ async function sendOtp(user_data, msg_content_id) {
     dynamicMessage = "No OTP sent";
   }
 
+
+
   return {
     status_code: otpTargets.length > 0 ? 1 : 0,
     message: dynamicMessage,
+    otps:otps
   };
+
 }
 
 module.exports = sendOtp;

@@ -1,26 +1,110 @@
+-- CreateEnum
+CREATE TYPE "public"."Role" AS ENUM ('Admin', 'User', 'Employee');
+
+-- CreateEnum
+CREATE TYPE "public"."Status" AS ENUM ('Active', 'Inactive');
+
+-- CreateEnum
+CREATE TYPE "public"."UserStatus" AS ENUM ('Active', 'Inactive', 'Banned');
+
+-- CreateEnum
+CREATE TYPE "public"."OtpStatus" AS ENUM ('Verified', 'Unverified');
+
+-- CreateEnum
+CREATE TYPE "public"."YesNo" AS ENUM ('Yes', 'No');
+
+-- CreateEnum
+CREATE TYPE "public"."TokenStatus" AS ENUM ('Active', 'Inactive', 'Expired');
+
+-- CreateEnum
+CREATE TYPE "public"."CurrencyEnum" AS ENUM ('INR', 'USD', 'EUR', 'GBP');
+
+-- CreateEnum
+CREATE TYPE "public"."HttpMethod" AS ENUM ('GET', 'POST');
+
+-- CreateEnum
+CREATE TYPE "public"."LoginStatus" AS ENUM ('Success', 'Failed');
+
+-- CreateTable
+CREATE TABLE "public"."users" (
+    "id" BIGSERIAL NOT NULL,
+    "uuid" VARCHAR(190) NOT NULL,
+    "name" VARCHAR(190) NOT NULL,
+    "company_name" VARCHAR(255),
+    "email" VARCHAR(190) NOT NULL,
+    "mobile_no" VARCHAR(12) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
+    "mpin" VARCHAR(100),
+    "profile_image" VARCHAR(255),
+    "role" "public"."Role" NOT NULL DEFAULT 'User',
+    "status" "public"."UserStatus" NOT NULL DEFAULT 'Active',
+    "otp_status" "public"."OtpStatus" NOT NULL DEFAULT 'Verified',
+    "last_login_at" TIMESTAMP(6),
+    "created_at" TIMESTAMP(6) NOT NULL,
+    "updated_at" TIMESTAMP(6) NOT NULL,
+    "mobile_verified_at" TIMESTAMP(6),
+    "email_verified_at" TIMESTAMP(6),
+    "delete_status" INTEGER NOT NULL DEFAULT 0,
+    "deleted_at" TIMESTAMP(6),
+    "remember_token" VARCHAR(100),
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."temp_users" (
+    "id" BIGSERIAL NOT NULL,
+    "name" VARCHAR(190) NOT NULL,
+    "email" VARCHAR(190) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
+    "mobile_no" VARCHAR(20) NOT NULL,
+    "created_at" TIMESTAMP(6),
+    "updated_at" TIMESTAMP(6),
+    "email_otp" VARCHAR(10),
+    "mobile_otp" VARCHAR(10),
+    "is_email_verified" BOOLEAN DEFAULT false,
+    "is_mobile_verified" BOOLEAN DEFAULT false,
+
+    CONSTRAINT "temp_users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."otp_verifications" (
+    "id" BIGSERIAL NOT NULL,
+    "otp" INTEGER NOT NULL,
+    "expires_at" TIMESTAMP(6) NOT NULL,
+    "is_verified" BOOLEAN DEFAULT false,
+    "created_at" TIMESTAMP(6) NOT NULL,
+    "updated_at" TIMESTAMP(6),
+    "user_id" BIGINT,
+    "type" "public"."OtpStatus" DEFAULT 'Unverified',
+
+    CONSTRAINT "otp_verifications_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "public"."audit_trail" (
     "id" BIGSERIAL NOT NULL,
     "table_name" VARCHAR(255) NOT NULL,
-    "row_id" INTEGER NOT NULL,
+    "row_id" BIGINT NOT NULL,
     "action" VARCHAR(20) NOT NULL,
-    "created_by" INTEGER,
+    "created_by" BIGINT,
     "created_at" TIMESTAMP(6),
-    "updated_by" INTEGER,
+    "updated_by" BIGINT,
     "updated_at" TIMESTAMP(6),
-    "approved_by" INTEGER,
+    "approved_by" BIGINT,
     "approved_at" TIMESTAMP(6),
     "verified_by" BIGINT,
     "verified_at" TIMESTAMP(6),
-    "rejected_by" INTEGER,
+    "rejected_by" BIGINT,
     "rejected_at" TIMESTAMP(6),
-    "deleted_by" INTEGER,
+    "deleted_by" BIGINT,
     "deleted_at" TIMESTAMP(6),
     "ip_address" VARCHAR(45),
     "latitude" DECIMAL(10,7),
     "longitude" DECIMAL(10,7),
     "remark" TEXT,
-    "status" VARCHAR(50),
+    "status" TEXT,
 
     CONSTRAINT "audit_trail_pkey" PRIMARY KEY ("id")
 );
@@ -35,11 +119,11 @@ CREATE TABLE "public"."login_history" (
     "latitude" DECIMAL(10,7),
     "longitude" DECIMAL(10,7),
     "location" TEXT,
-    "status" VARCHAR(20),
+    "status" "public"."LoginStatus",
     "user_agent" TEXT,
     "created_at" TIMESTAMP(6),
     "updated_at" TIMESTAMP(6),
-    "user_id" INTEGER,
+    "user_id" BIGINT,
 
     CONSTRAINT "login_history_pkey" PRIMARY KEY ("id")
 );
@@ -48,26 +132,25 @@ CREATE TABLE "public"."login_history" (
 CREATE TABLE "public"."msg_apis" (
     "id" BIGSERIAL NOT NULL,
     "api_name" VARCHAR(255) NOT NULL,
-    "api_type" VARCHAR(10) NOT NULL,
+    "api_type" TEXT NOT NULL,
     "base_url" TEXT NOT NULL,
     "params" TEXT,
-    "method" VARCHAR(6) NOT NULL,
-    "status" VARCHAR(8) NOT NULL,
+    "method" "public"."HttpMethod" NOT NULL,
+    "status" "public"."Status" NOT NULL,
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
-    "serial_no" INTEGER,
 
     CONSTRAINT "msg_apis_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."msg_contents" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "message_type" VARCHAR(255),
-    "send_sms" VARCHAR(10) DEFAULT 'Yes',
-    "send_whatsapp" VARCHAR(10) DEFAULT 'Yes',
-    "send_email" VARCHAR(10) DEFAULT 'Yes',
-    "send_notification" VARCHAR(10) DEFAULT 'No',
+    "send_sms" "public"."YesNo" NOT NULL DEFAULT 'Yes',
+    "send_whatsapp" "public"."YesNo" NOT NULL DEFAULT 'Yes',
+    "send_email" "public"."YesNo" NOT NULL DEFAULT 'Yes',
+    "send_notification" "public"."YesNo" NOT NULL DEFAULT 'No',
     "sms_template_id" VARCHAR(255),
     "sms_content" TEXT,
     "whatsapp_content" TEXT,
@@ -78,7 +161,6 @@ CREATE TABLE "public"."msg_contents" (
     "keywords" TEXT,
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
-    "serial_no" INTEGER,
 
     CONSTRAINT "msg_contents_pkey" PRIMARY KEY ("id")
 );
@@ -103,7 +185,7 @@ CREATE TABLE "public"."msg_signature" (
     "id" BIGSERIAL NOT NULL,
     "signature_type" VARCHAR(10) NOT NULL,
     "signature" TEXT NOT NULL,
-    "status" VARCHAR(8) NOT NULL,
+    "status" "public"."Status" NOT NULL DEFAULT 'Active',
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
 
@@ -111,28 +193,13 @@ CREATE TABLE "public"."msg_signature" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."otp_verifications" (
-    "id" SERIAL NOT NULL,
-    "otp" INTEGER NOT NULL,
-    "expires_at" TIMESTAMP(6) NOT NULL,
-    "is_verified" BOOLEAN DEFAULT false,
-    "created_at" TIMESTAMP(6) NOT NULL,
-    "updated_at" TIMESTAMP(6),
-    "user_id" INTEGER,
-    "type" VARCHAR(10),
-
-    CONSTRAINT "otp_verifications_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "public"."product_categories" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "slug" VARCHAR(100) NOT NULL,
-    "status" VARCHAR(8) DEFAULT 'Active',
+    "status" "public"."Status" DEFAULT 'Active',
     "created_at" TIMESTAMP(6),
     "updated_at" TIMESTAMP(6),
-    "serial_no" INTEGER,
 
     CONSTRAINT "product_categories_pkey" PRIMARY KEY ("id")
 );
@@ -145,7 +212,6 @@ CREATE TABLE "public"."product_pricing" (
     "currency" VARCHAR(10) DEFAULT 'INR',
     "created_at" TIMESTAMP(6),
     "updated_at" TIMESTAMP(6),
-    "serial_no" INTEGER,
 
     CONSTRAINT "product_pricing_pkey" PRIMARY KEY ("id")
 );
@@ -158,10 +224,9 @@ CREATE TABLE "public"."products" (
     "slug" VARCHAR(100) NOT NULL,
     "description" TEXT,
     "icon" VARCHAR(255),
-    "status" VARCHAR(8) DEFAULT 'Active',
+    "status" "public"."Status" DEFAULT 'Active',
     "created_at" TIMESTAMP(6),
     "updated_at" TIMESTAMP(6),
-    "serial_no" INTEGER,
 
     CONSTRAINT "products_pkey" PRIMARY KEY ("id")
 );
@@ -178,52 +243,17 @@ CREATE TABLE "public"."service_switchings" (
     "gst" INTEGER NOT NULL,
     "tds" INTEGER NOT NULL,
     "txn_limit" INTEGER NOT NULL,
-    "status" VARCHAR(50) NOT NULL DEFAULT 'Active',
+    "status" "public"."Status" NOT NULL DEFAULT 'Active',
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
-    "serial_no" INTEGER,
 
     CONSTRAINT "service_switchings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."temp_users" (
-    "id" SERIAL NOT NULL,
-    "name" VARCHAR(190) NOT NULL,
-    "email" VARCHAR(190) NOT NULL,
-    "password" VARCHAR(255) NOT NULL,
-    "mobile_no" VARCHAR(20) NOT NULL,
-    "created_at" TIMESTAMP(6),
-    "updated_at" TIMESTAMP(6),
-    "email_otp" VARCHAR(10),
-    "mobile_otp" VARCHAR(10),
-    "is_email_verified" BOOLEAN DEFAULT false,
-    "is_mobile_verified" BOOLEAN DEFAULT false,
-
-    CONSTRAINT "temp_users_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."users" (
-    "id" SERIAL NOT NULL,
-    "uuid" INTEGER NOT NULL,
-    "name" VARCHAR(190) NOT NULL,
-    "email" VARCHAR(190) NOT NULL,
-    "password" VARCHAR(255) NOT NULL,
-    "mobile_no" VARCHAR(20) NOT NULL,
-    "status" VARCHAR(50) NOT NULL,
-    "otp_status" VARCHAR(50) NOT NULL,
-    "role" VARCHAR(50) NOT NULL,
-    "created_at" TIMESTAMP(6),
-    "updated_at" TIMESTAMP(6),
-
-    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "public"."wallets" (
-    "id" SERIAL NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "balance" DOUBLE PRECISION DEFAULT 0.0,
     "lien_balance" DOUBLE PRECISION DEFAULT 0.0,
     "free_balance" DOUBLE PRECISION DEFAULT 100.0,
@@ -237,11 +267,11 @@ CREATE TABLE "public"."wallets" (
 -- CreateTable
 CREATE TABLE "public"."webhooks" (
     "id" BIGSERIAL NOT NULL,
-    "user_id" VARCHAR(50) NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "url" TEXT,
     "event" VARCHAR(100),
     "secret_key" VARCHAR(255),
-    "status" VARCHAR(8) NOT NULL,
+    "status" "public"."Status" NOT NULL DEFAULT 'Active',
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
 
@@ -251,9 +281,9 @@ CREATE TABLE "public"."webhooks" (
 -- CreateTable
 CREATE TABLE "public"."user_ip_whitelist" (
     "id" BIGSERIAL NOT NULL,
-    "user_id" VARCHAR(50) NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "ip_address" VARCHAR(45) NOT NULL,
-    "status" VARCHAR(8) NOT NULL,
+    "status" "public"."Status" NOT NULL DEFAULT 'Inactive',
     "created_at" TIMESTAMP(6) NOT NULL,
     "updated_at" TIMESTAMP(6) NOT NULL,
 
@@ -263,11 +293,11 @@ CREATE TABLE "public"."user_ip_whitelist" (
 -- CreateTable
 CREATE TABLE "public"."user_tokens" (
     "id" BIGSERIAL NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "token" TEXT NOT NULL,
     "token_type" VARCHAR(10) NOT NULL,
     "expires_at" TIMESTAMP(6),
-    "status" VARCHAR(8) NOT NULL,
+    "status" "public"."TokenStatus" NOT NULL DEFAULT 'Inactive',
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
 
@@ -293,15 +323,27 @@ CREATE TABLE "public"."apis" (
     "auth_value5" TEXT,
     "auth_key6" TEXT,
     "auth_value6" TEXT,
-    "auto_status_check" VARCHAR(8),
-    "status" VARCHAR(50),
-    "deleted" VARCHAR(3) DEFAULT 'No',
+    "auto_status_check" "public"."Status" DEFAULT 'Inactive',
+    "status" "public"."Status" DEFAULT 'Inactive',
+    "deleted" "public"."YesNo" DEFAULT 'No',
     "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMP(6),
 
     CONSTRAINT "apis_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_uuid_key" ON "public"."users"("uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "public"."users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_mobile_no_key" ON "public"."users"("mobile_no");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "temp_users_email_key" ON "public"."temp_users"("email");
 
 -- CreateIndex
 CREATE INDEX "idx_user_id_type" ON "public"."otp_verifications"("user_id", "type");
@@ -319,22 +361,10 @@ CREATE UNIQUE INDEX "products_slug_key" ON "public"."products"("slug");
 CREATE UNIQUE INDEX "unique_category_name" ON "public"."products"("category_id", "name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "temp_users_email_key" ON "public"."temp_users"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "users_uuid_key" ON "public"."users"("uuid");
-
--- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "public"."users"("email");
-
--- CreateIndex
 CREATE UNIQUE INDEX "wallets_user_id_key" ON "public"."wallets"("user_id");
 
 -- AddForeignKey
 ALTER TABLE "public"."msg_logs" ADD CONSTRAINT "fk_msg_logs_api" FOREIGN KEY ("api_id") REFERENCES "public"."msg_apis"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- AddForeignKey
-ALTER TABLE "public"."otp_verifications" ADD CONSTRAINT "fk_temp_user" FOREIGN KEY ("user_id") REFERENCES "public"."temp_users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "public"."product_pricing" ADD CONSTRAINT "product_pricing_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -350,6 +380,12 @@ ALTER TABLE "public"."service_switchings" ADD CONSTRAINT "fk_product" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "public"."wallets" ADD CONSTRAINT "fk_user" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "public"."webhooks" ADD CONSTRAINT "fk_user" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "public"."user_ip_whitelist" ADD CONSTRAINT "fk_user" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "public"."user_tokens" ADD CONSTRAINT "fk_user" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;

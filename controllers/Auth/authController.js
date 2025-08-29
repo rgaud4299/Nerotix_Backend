@@ -42,7 +42,7 @@ exports.register = async (req, res) => {
       );
     }
 
-    
+
     const hashed = await bcrypt.hash(password, 10);
     const now = new Date();
     const tempUser = await prisma.temp_users.create({
@@ -91,14 +91,14 @@ exports.loginUser = async (req, res) => {
   }
 
   try {
-    let user = await prisma.users.findUnique({ where: { email } });
+    let user = await prisma.users.findUnique({ where: { email } });    
     const tempUser = await prisma.temp_users.findUnique({ where: { email } });
 
     if (tempUser) {
-      if (!tempUser.is_mobile_verified) {
+      if (!tempUser.is_mobile_verified) { 
         await sendOtpRegistration(tempUser.mobile_no, "mobile", tempUser.id);
         return success(res, "Mobile verification pending", {
-          verify: "mobile",
+          verify: "mobile", 
           info: maskMobile(tempUser.mobile_no),
           statusCode: RESPONSE_CODES.VERIFICATION_PENDING,
         });
@@ -122,9 +122,9 @@ exports.loginUser = async (req, res) => {
             email: tempUser.email,
             password: tempUser.password,
             mobile_no: tempUser.mobile_no,
-            role: tempUser.role || "user",
-            status: "active",
-            otp_status: "verified",
+            role: tempUser.role || "User",
+            status: "Active",
+            otp_status: "Verified",
             created_at: now,
             updated_at: now,
           },
@@ -150,10 +150,11 @@ exports.loginUser = async (req, res) => {
       return error(res, "Invalid email address", RESPONSE_CODES.NOT_FOUND, 401);
     }
 
+
     const valid = await bcrypt.compare(password, user.password);
 
     const historyBase = {
-      user_id: user.uuid,
+      user_id: parseInt(user.uuid),
       device: agent.device?.toString?.() || String(agent.device || ""),
       operating_system: agent.os?.toString?.() || String(agent.os || ""),
       browser: agent.toAgent ? agent.toAgent() : "",
@@ -172,18 +173,18 @@ exports.loginUser = async (req, res) => {
       return error(res, "Incorrect password", RESPONSE_CODES.FAILED, 401);
     }
 
-    const allowedRoles = ["user", "admin"];
+    const allowedRoles = ["User", "Admin"];
     if (!allowedRoles.includes(user.role)) {
       return error(res, "Unauthorized role", RESPONSE_CODES.FAILED, 403);
     }
 
-    if (user.status !== "active") {
+    if (user.status !== "Active") { 
       return error(res, "Account not active", RESPONSE_CODES.FAILED, 403);
     }
 
-    const tokenPayload = { id: user.id, uuid: user.uuid, email: user.email, role: user.role };
+    const tokenPayload = { id:parseInt(user.id), uuid: user.uuid, email: user.email, role: user.role };
     const token = generateToken(tokenPayload);
-    const expiresAt = dayjs().add(1, "hour").toDate();
+    const expiresAt = dayjs().add(8, "hour").toDate();
 
     await prisma.user_tokens.create({
       data: {
@@ -191,7 +192,7 @@ exports.loginUser = async (req, res) => {
         token,
         token_type: "app",
         expires_at: expiresAt,
-        status: "active",
+        status: "Active",
         created_at: new Date(),
       },
     });
@@ -289,6 +290,7 @@ exports.verifyOtp = async (req, res) => {
       return error(res, 'Mobile OTP expired', RESPONSE_CODES.FAILED, 400);
     }
 
+    
     await prisma.otp_verifications.updateMany({
       where: { id: { in: [emailOtpRecord.id, mobileOtpRecord.id] } },
       data: { is_verified: true },
@@ -307,13 +309,13 @@ exports.verifyOtp = async (req, res) => {
 
     const newUser = await prisma.users.create({
       data: {
-        uuid: randomUUID(),
+       uuid: randomUUID().toString(),
         name: tempUser.name,
         email: tempUser.email,
         mobile_no: tempUser.mobile_no,
         password: tempUser.password,
         status: 'active',
-        otp_status: 'verified',
+        otp_status: 'active',
         role: 'user',
         created_at: now,
         updated_at: now,

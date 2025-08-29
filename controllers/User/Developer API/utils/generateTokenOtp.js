@@ -7,9 +7,10 @@ const dayjs = require("dayjs");
 
 const utc = require("dayjs/plugin/utc");
 const tz = require("dayjs/plugin/timezone");
-const { RESPONSE_CODES } = require("../../../../utils/helper");
+const { RESPONSE_CODES, sendOtpRegistration } = require("../../../../utils/helper");
 const sendOtp = require("../../../../utils/Helper/SendOtp");
 const { success, error } = require("../../../../utils/response");
+const { sendDynamicMessage } = require("../../../../utils/Helper/sendDynamicMessage");
 dayjs.extend(utc);
 dayjs.extend(tz);
 
@@ -18,9 +19,12 @@ const ISTFormat = (d) =>
 
 
 exports.generateTokenOTP = async (req, res) => {
-  try {
-    const user_id = req.user.id;
 
+  try {
+    const user_id = req.user.user_id;
+// console.log("req.user.user_id",req.user.user_id);
+
+    const msg_cont_id = 1;
     const user_data = await db.users.findFirst({
       where: { id: user_id },
       select: {
@@ -39,15 +43,42 @@ exports.generateTokenOTP = async (req, res) => {
         404
       );
     }
-  //  pass  user_data and msg content id 
-    const sendotp = await sendOtp(user_data, 2);
 
-    if (sendotp.status_code === 1) {
-      return success(res, sendotp.message); // ✅ success helper
+    // const sendotp_data = {
+    //   msg_cont_id,
+    //   mobile_no: user_data.mobile_no,
+    //   email: user_data.email,
+    //   user_id
+    // };
+    // const result = await sendOtp(sendotp_data);
+
+
+
+    // create otp and register otp in table 
+    const mobile_Otp = await sendOtpRegistration(user_data.mobile_no, "mobile", user_id);
+
+
+    const placeholders = {
+      "{FULL_NAME}": user_data.name,
+      "{OTP}": mobile_Otp
+    };
+
+    const msg_data = {
+      msg_cont_id,
+      placeholders,
+      mobile_no: user_data.mobile_no,
+      email: user_data.email,
+      attachment: ""
+    };
+
+    sendDynamicMessage(msg_data);
+
+    if (mobile_Otp) {
+      return success(res, " OTP sent to your registered mobile no. ", null, RESPONSE_CODES.SUCCESS);
     } else {
       return error(
         res,
-        sendotp.message,
+        result.message,
         RESPONSE_CODES.VALIDATION_ERROR,
         400
       );
