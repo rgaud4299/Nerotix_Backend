@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 const { validationResult } = require('express-validator');
 const { logAuditTrail } = require('../../../services/auditTrailService');
 const { RESPONSE_CODES } = require('../../../utils/helper');
-const { success, error } = require('../../../utils/response');
+const { success, error, successGetAll } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 const { getNextSerial, reorderSerials } = require('../../../utils/serial');
 const dayjs = require('dayjs');
@@ -49,7 +49,6 @@ module.exports = {
         return error(res, 'This product already has a price entry.', RESPONSE_CODES.DUPLICATE, 409);
       }
 
-      const nextSerial = await getNextSerial(prisma, 'product_pricing');
 
       const Product_price = await prisma.product_pricing.create({
         data: {
@@ -57,7 +56,6 @@ module.exports = {
           price,
           currency,
           created_at: new Date(),
-          serial_no: nextSerial
         },
       });
 
@@ -68,7 +66,7 @@ module.exports = {
         user_id: req.user?.id,
         ip_address: req.ip,
         remark: `Price ${price} ${currency} added for product ID ${product_id}`,
-        status: 'Active',
+        status: null,
         created_by: req.user?.id || null
       }).catch((err) => console.error('Audit log failed:', err));
 
@@ -102,15 +100,15 @@ module.exports = {
           },
         }
         : {};
-
+      const skip = offset * 10;
       const [total, filteredCount, data] = await Promise.all([
         prisma.product_pricing.count(),
         prisma.product_pricing.count({ where }),
         prisma.product_pricing.findMany({
           where,
-          skip: offset * limit,
+          skip,
           take: limit,
-          orderBy: { serial_no: 'asc' },
+          orderBy: { id: 'asc' },
           include: {
             products: {
               select: { name: true },
@@ -119,7 +117,7 @@ module.exports = {
         }),
       ]);
 
-      const formattedData = data.map((item) => ({
+      const formattedData = data.map((item, index) => ({
         ...item,
         id: item.id.toString(),
         product_id: item.product_id.toString(),
@@ -127,16 +125,26 @@ module.exports = {
         price: item.price.toString(),
         created_at: ISTFormat(item.created_at),
         updated_at: ISTFormat(item.updated_at),
+        serial_no: skip + index + 1,
       }));
 
-      return res.status(200).json({
-        success: true,
-        statusCode: 1,
-        message: 'Data fetched successfully',
-        recordsTotal: total,
-        recordsFiltered: filteredCount,
-        data: formattedData, // Always array
-      });
+
+      // return res.status(200).json({
+      //   success: true,
+      //   statusCode: 1,
+      //   message: 'Data fetched successfully',
+      //   recordsTotal: total,
+      //   recordsFiltered: filteredCount,
+      //   data: formattedData, // Always array
+      // });
+
+      return successGetAll(
+        res,
+        'Data fetched successfully',
+        formattedData,
+        total,
+        filteredCount
+      );
     } catch (err) {
       console.error('getProductPricingList error:', err);
       return error(res, 'Server error');
@@ -146,7 +154,6 @@ module.exports = {
   // GET product price by ID
   async getProductPriceById(req, res) {
     const id = safeParseInt(req.params.id);
-
     if (!id) {
       return error(res, 'Price ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
     }
@@ -238,7 +245,7 @@ module.exports = {
         user_id: req.user?.id,
         ip_address: req.ip,
         remark: `Price updated to ${price} ${currency} for product price ID ${id}`,
-        status: 'Active',
+        status: 'Update',
         updated_by: req.user?.id || null
       }).catch((err) => console.error('Audit log failed:', err));
 

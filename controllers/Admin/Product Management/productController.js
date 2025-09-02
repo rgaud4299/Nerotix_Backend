@@ -51,11 +51,10 @@ exports.addProduct = async (req, res) => {
     if (slugExists) slug = `${slug}-${Date.now()}`;
 
     const imagePath = req.file ? uploadImage(req.file, req) : null;
-    const nextSerial = await getNextSerial(prisma, 'products');
 
     const product = await prisma.$transaction(async (tx) => {
       const created = await tx.products.create({
-        data: { category_id, name, slug, description, icon: imagePath, status, created_at: new Date(), serial_no: nextSerial }
+        data: { category_id, name, slug, description, icon: imagePath, status, created_at: new Date() }
       });
 
       safeLogAuditTrail({
@@ -67,7 +66,7 @@ exports.addProduct = async (req, res) => {
         ip_address: req.ip,
         remark: `Product "${created.name}" created`,
         created_by: req.user?.id || null,
-        status: created.status
+        status: null
       });
 
       return created;
@@ -181,7 +180,7 @@ exports.getProductList = async (req, res) => {
     const categoryId = req.body.categoryId ? String(req.body.categoryId) : '';
 
     const statusFilter = statusRaw.toLowerCase();
-    const validStatuses = ['active', 'inactive'];
+    const validStatuses = ['Active', 'Inactive'];
 
     // where condition banate waqt categoryId bhi check hoga (agar bheja gaya ho)
     const where = {
@@ -197,22 +196,22 @@ exports.getProductList = async (req, res) => {
           : null
       ].filter(Boolean)
     };
-
+    const skip = offset * 10;
     const [total, filteredCount, data] = await Promise.all([
       prisma.products.count(),
       prisma.products.count({ where }),
       prisma.products.findMany({
         where,
-        skip: offset * limit,
+        skip,
         take: limit,
-        orderBy: { serial_no: 'asc' },
+        orderBy: { id: 'asc' },
         include: { product_categories: { select: { id: true, name: true } } }
       })
     ]);
 
-    const formattedData = convertBigIntToString(data).map((p) => ({
+    const formattedData = convertBigIntToString(data).map((p, index) => ({
       id: String(p.id),
-      serial_no: safeParseInt(p.serial_no),
+      serial_no: skip + index + 1,
       category_id: p.category_id ? String(p.category_id) : null,
       category_name: p.product_categories
         ? p.product_categories.name
@@ -226,18 +225,26 @@ exports.getProductList = async (req, res) => {
       updated_at: ISTFormat(p.updated_at)
     }));
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Data fetched successfully',
-      recordsTotal: total,
-      recordsFiltered: filteredCount,
-      data: formattedData
-    });
+    // return res.status(200).json({
+    //   success: true,
+    //   statusCode: 1,
+    //   message: 'Data fetched successfully',
+    //   recordsTotal: total,
+    //   recordsFiltered: filteredCount,
+    //   data: formattedData
+    // });
+
+    return successGetAll(
+      res,
+      'Data fetched successfully',
+      formattedData,
+      total,
+      filteredCount
+    );
   } catch (err) {
     console.error('getProductList error:', err);
-    return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
-  }
+    return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
+  }
 };
 
 
@@ -334,7 +341,7 @@ exports.updateProduct = async (req, res) => {
         ip_address: req.ip,
         remark: `Product "${name}" updated`,
         updated_by: req.user?.id || null,
-        status
+        status: null
       });
     });
 
@@ -372,7 +379,7 @@ exports.deleteProduct = async (req, res) => {
         ip_address: req.ip,
         remark: `Product "${product.name}" deleted`,
         deleted_by: req.user?.id || null,
-        status: 'Deleted'
+        status: null
       });
     });
 

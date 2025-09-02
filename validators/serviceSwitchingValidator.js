@@ -61,12 +61,8 @@ const txnLimitRule = body('txn_limit')
 // Status (common rule)
 const statusRule = body('status')
   .optional()
-  .custom((value) => {
-    if (!VALID_STATUS.includes(value.toUpperCase())) {
-      throw new Error('Status must be Active or Inactive');
-    }
-    return true;
-  });
+  .isIn(['Active', 'Inactive'])
+  .withMessage('Status must be Active or Inactive');
 
 // Validators
 const addServiceSwitchingValidation = [
@@ -109,6 +105,7 @@ const changeServiceSwitchingStatusValidation = [
       return true;
     })
 ];
+
 
 module.exports = {
   addServiceSwitchingValidation,

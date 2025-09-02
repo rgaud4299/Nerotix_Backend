@@ -43,7 +43,7 @@ exports.addOrUpdateSignature = async (req, res) => {
       const now = getISTDate();
 
       if (existing) {
-        if (existing.signature === signature && existing.status.toLowerCase() === status) {
+        if (existing.signature === signature && existing.status === status) {
           return { message: 'Already up-to-date', alreadyUpdated: true };
         }
 

@@ -7,6 +7,7 @@ const { makeAxiosRequest } = require('../httpHelper');
 // ================= Main Function =================
 async function sendDynamicMessage(data) {
 
+
   // Step 1: Fetch message template from DB using msg_id
   const messageContents = await db.msg_contents.findFirst({
     where: { id: data.msg_cont_id },
@@ -38,7 +39,7 @@ async function sendDynamicMessage(data) {
   }
 
   // ================= SMS Message Send =================
-  if (sendSms === "Yes") { 
+  if (sendSms === "Yes") {
     await sendSmsMessage(mobileNo, smsContent, attachment, messageContents.sms_template_id);
   }
 
@@ -50,7 +51,6 @@ async function sendDynamicMessage(data) {
     }
     await sendEmailMessage(emailId, emailSubject, emailContent);
   }
-
   return true;
 }
 
@@ -64,13 +64,12 @@ function replacePlaceholders(template, placeholders) {
   for (const [key, value] of Object.entries(placeholders)) {
     result = result.replace(new RegExp(key, "g"), value);
   }
-
   return result;
 }
 
 // ================= Send WhatsApp =================
-async function sendWhatsappMessage(mobileNo, whatsappContent,tempId='', attachment) {
-  
+async function sendWhatsappMessage(mobileNo, whatsappContent, tempId = '', attachment) {
+
   // Fetch active WhatsApp API from DB
   const waApi = await db.msg_apis.findFirst({
     where: { api_type: "Whatsapp", status: "Active" },
@@ -83,7 +82,7 @@ async function sendWhatsappMessage(mobileNo, whatsappContent,tempId='', attachme
   });
 
   if (signatureData?.whatsapp_signature) {
-    whatsappContent += `\n\n${signatureData.whatsapp_signature}`; 
+    whatsappContent += `\n\n${signatureData.whatsapp_signature}`;
   }
 
   // Encode message for URL
@@ -99,46 +98,31 @@ async function sendWhatsappMessage(mobileNo, whatsappContent,tempId='', attachme
   const completeUrl = `${waApi.base_url}?${params}`
 
   try {
-
     // Send request to SMS API
-
     const result = await makeAxiosRequest(
       completeUrl,
       {},
-      "GET",
-
+      waApi.method,
     );
 
-    console.log(result);
-    // Save API log into database
-    // await db.msg_logs.create({
-    //   data: {
-    //     api_id: waApi.id,
-    //     api_name: waApi.api_name,
-    //     numbers: mobileNo,
-    //     message: whatsappContent,
-    //     base_url: completeUrl,
-    //     params: "{}", 
-    //     api_response: result.data+" ",
-    //     created_at: dayjs().toDate(),
-    //     updated_at:dayjs().toDate()
-    //   },
-    // });
-const response=""
-      await db.msg_logs.create({
+    // console.log(result);
+
+    await db.msg_logs.create({
       data: {
         api_id: waApi.id,
-
-        numbers: mobileNo,
-        message: smsContent,
+        numbers: mobileNo + "",
+        message: whatsappContent,
         base_url: waApi.base_url,
         params: params,
-        api_response: JSON.stringify(response),
+        api_response: JSON.stringify(result.response),
         created_at: dayjs().toDate(),
         updated_at: dayjs().toDate(),
-
       },
     });
+
+
+    console.log("otp send on whatapp successfully ");
+
   } catch (err) {
     console.error("WhatsApp error:", err.message);
   }
@@ -150,7 +134,11 @@ async function sendSmsMessage(mobileNo, smsContent, attachment, tempId) {
   const smsApi = await db.msg_apis.findFirst({
     where: { api_type: "SMS", status: "Active" },
   });
-  if (!smsApi) return false;
+
+  if (!smsApi) {
+    console.log("send msg error mgs api not define  ");
+    return false;
+  }
 
   // Fetch SMS signature (if active)
   const signatureData = await db.msg_signature.findFirst({
@@ -175,37 +163,25 @@ async function sendSmsMessage(mobileNo, smsContent, attachment, tempId) {
   try {
 
     // Send request to SMS API
-
-    const result = await makeAxiosRequest(
+    const Api_response = await makeAxiosRequest(
       completeUrl,
       {},
-      "GET",
-      5
+      smsApi.method,
     );
 
-    console.log(result);
+    console.log(Api_response);
 
-
-    // const res1 = await makeAxiosRequest(
-    //   "https://jsonplaceholder.typicode.com/posts",
-    //   { id: 1 }  
-    // );
-    // console.log(res1);
-
-    const response = 'status 200'
     // Save API log into database
     await db.msg_logs.create({
       data: {
         api_id: smsApi.id,
-
         numbers: mobileNo,
         message: smsContent,
         base_url: smsApi.base_url,
         params: params,
-        api_response: JSON.stringify(response),
+        api_response: JSON.stringify(Api_response.response),
         created_at: dayjs().toDate(),
         updated_at: dayjs().toDate(),
-
       },
     });
   } catch (err) {

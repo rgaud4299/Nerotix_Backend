@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const { convertBigIntToString } = require('./parser');
 
 const generateToken = (payload, expiresIn = process.env.JWT_EXPIRES_IN || '8h') => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
-
+payload=convertBigIntToString(payload)
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 

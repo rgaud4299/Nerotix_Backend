@@ -117,8 +117,9 @@ exports.getAllIp = async (req, res) => {
     });
     
     // format data
-    const formatted = ipList.map(ip => convertBigIntToString({
+    const formatted = ipList.map((ip,index) => convertBigIntToString({
       id: ip.id,
+      serial_no:index+1,
       user_id: ip.user_id,
       ip_address: ip.ip_address,
       status: ip.status,

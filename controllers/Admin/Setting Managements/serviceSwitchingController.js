@@ -5,9 +5,9 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const { logAuditTrail } = require('../../../services/auditTrailService');
-const { RESPONSE_CODES } = require('../../../utils/helper');
+const { RESPONSE_CODES, normalizeStatus } = require('../../../utils/helper');
 const { getNextSerial, reorderSerials } = require('../../../utils/serial');
-const { success, error } = require('../../../utils/response');
+const { success, error, successGetAll } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
 
@@ -39,11 +39,9 @@ exports.addServiceSwitching = async (req, res) => {
     if (existing) return error(res, 'Service Switching for this API and Product already exists', RESPONSE_CODES.DUPLICATE, 409);
 
     const dateObj = dayjs().tz('Asia/Kolkata').toDate();
-    const nextSerial = await getNextSerial(prisma, 'service_switchings');
 
     const newData = await prisma.service_switchings.create({
       data: {
-        serial_no: nextSerial,
         api_id,
         product_id,
         api_code: String(api_code),
@@ -53,7 +51,7 @@ exports.addServiceSwitching = async (req, res) => {
         gst: Number(gst),
         tds: Number(tds),
         txn_limit: Number(txn_limit),
-        status: VALID_STATUS.includes(status?.toUpperCase()) ? status.toUpperCase() : 'ACTIVE',
+        status,
         created_at: dateObj,
         updated_at: dateObj
       }
@@ -84,7 +82,11 @@ exports.getServiceSwitchingList = async (req, res) => {
   const limit = safeParseInt(req.body.limit, 10);
   const product_id = req.body.product_id ? BigInt(safeParseInt(req.body.product_id)) : null;
   const apiId = req.body.apiId ? BigInt(safeParseInt(req.body.apiId)) : null;
-  const statusFilter = VALID_STATUS.includes(req.body.status?.toUpperCase()) ? req.body.status.toUpperCase() : null;
+  const statusFilter = (req.body.status && VALID_STATUS.includes(req.body.status.charAt(0).toUpperCase() + req.body.status.slice(1).toLowerCase()))
+    ? req.body.status.charAt(0).toUpperCase() + req.body.status.slice(1).toLowerCase()
+    : null;
+
+  const skip = offset * 10;
 
   try {
     const where = { AND: [product_id ? { product_id } : null, apiId ? { api_id: apiId } : null, statusFilter ? { status: statusFilter } : null].filter(Boolean) };
@@ -96,37 +98,31 @@ exports.getServiceSwitchingList = async (req, res) => {
 
     const data = await prisma.service_switchings.findMany({
       where,
-      skip: offset * limit,
+      skip,
       take: limit,
-      orderBy: { serial_no: 'asc' },
+      orderBy: { id: 'asc' },
       include: { apis: true, products: true }
     });
 
-    const formattedData = convertBigIntToString(data).map(item => {
+    const formattedData = convertBigIntToString(data).map((item, index) => {
       let purchaseText = '';
       if (item.flat_per === 'flat') purchaseText = `Surcharge @ ${item.commission_surcharge} ₹/Txn`;
-      if (item.flat_per === 'percent') purchaseText =` Commission @ ${item.commission_surcharge} %`;
+      if (item.flat_per === 'percent') purchaseText = ` Commission @ ${item.commission_surcharge} %`;
 
       return {
         id: item.id.toString(),
-        serial_no: item.serial_no,
+        serial_no: skip + index + 1,
         api_name: item.apis?.api_name || '',   // yaha bhi msg_apis -> apis
         product: item.products?.name || '',
         apiServiceCode: item.api_code || '0',
         purchase: purchaseText,
         limit: item.txn_limit,
-        status: item.status.toUpperCase()
+        status: item.status
       };
     });
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Data fetched successfully',
-      recordsTotal: total,
-      recordsFiltered: filteredCount,
-      data: formattedData
-    });
+
+    return successGetAll(res, 'Data fetched successfully', formattedData, total, filteredCount,);
 
   } catch (err) {
     console.error(err);
@@ -211,7 +207,7 @@ exports.updateServiceSwitching = async (req, res) => {
         gst: Number(gst),
         tds: Number(tds),
         txn_limit: Number(txn_limit),
-        status: VALID_STATUS.includes(status?.toUpperCase()) ? status.toUpperCase() : 'ACTIVE',
+        status,
         updated_at: updatedAt
       }
     });
@@ -222,7 +218,7 @@ exports.updateServiceSwitching = async (req, res) => {
       action: 'update',
       user_id: req.user?.id || null,
       ip_address: req.ip,
-      remark:` Service Switching updated for API Code ${api_code}`,
+      remark: ` Service Switching updated for API Code ${api_code}`,
       updated_by: req.user?.id || null,
       status: 'Updated'
     }).catch(err => console.error('Audit log error:', err));
@@ -275,12 +271,6 @@ exports.changeServiceSwitchingStatus = async (req, res) => {
   const id = BigInt(safeParseInt(req.params.id));
   const { status } = req.body;
 
-  if (!id) {
-  }
-
-  if (!status || !VALID_STATUS.includes(status.toUpperCase())) {
-  }
-
   try {
     const existing = await prisma.service_switchings.findUnique({ where: { id } });
     if (!existing) {
@@ -289,27 +279,32 @@ exports.changeServiceSwitchingStatus = async (req, res) => {
 
     const updatedAt = dayjs().tz('Asia/Kolkata').toDate();
 
+    const normalizedStatus = normalizeStatus(status);
+    if (!normalizedStatus) {
+      return error(res, 'Status must be Active or Inactive', RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+
+
     await prisma.$transaction(async (tx) => {
-      if (status.toUpperCase() === 'ACTIVE') {
+      if (normalizedStatus === 'Active') {   // or "ACTIVE"
         await tx.service_switchings.updateMany({
           where: { product_id: existing.product_id },
-          data: { status: 'INACTIVE', updated_at: updatedAt }
+          data: { status: 'Inactive', updated_at: updatedAt }  // or "INACTIVE"
         });
       }
 
       await tx.service_switchings.update({
         where: { id },
-        data: { status: status.toUpperCase(), updated_at: updatedAt }
+        data: { status: normalizedStatus, updated_at: updatedAt }
       });
     });
-
     logAuditTrail({
       table_name: 'service_switchings',
       row_id: id,
       action: 'update',
       user_id: req.user?.id || null,
       ip_address: req.ip,
-      remark:` Service Switching status changed to ${status.toUpperCase()}`,
+      remark: ` Service Switching status changed to ${status.toUpperCase()}`,
       updated_by: req.user?.id || null,
       status
     }).catch(err => console.error('Audit log error:', err));

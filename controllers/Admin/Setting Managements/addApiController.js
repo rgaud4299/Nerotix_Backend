@@ -2,8 +2,8 @@
 const prisma = require('@prisma/client').PrismaClient;
 const db = new prisma();
 const dayjs = require("dayjs");
-const { success, error } = require("../../../utils/response");
-const { RESPONSE_CODES } = require("../../../utils/helper");
+const { success, error, successGetAll } = require("../../../utils/response");
+const { RESPONSE_CODES, normalizeStatus } = require("../../../utils/helper");
 const { logAuditTrail } = require("../../../services/auditTrailService");
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
@@ -18,7 +18,7 @@ const ISTFormat = (d) => (d ? dayjs(d).tz('Asia/Kolkata').format('YYYY-MM-DD HH:
 
 
 exports.apiCreate = async (req, res) => {
-   try {
+  try {
     const { api_name } = req.body;
 
     // check if api_name already exists
@@ -28,9 +28,9 @@ exports.apiCreate = async (req, res) => {
 
     if (existingApi) {
       if (existingApi.deleted === "No") {
-        return error(res, "API already exists with this name", 4,409);
+        return error(res, "API already exists with this name", 4, 409);
       } else if (existingApi.deleted === "Yes") {
-        return error(res, "API already exists but in deleted status Yes", 4,409);
+        return error(res, "API already exists but in deleted status Yes", 4, 409);
       }
     }
 
@@ -53,7 +53,7 @@ exports.apiCreate = async (req, res) => {
         auth_key6: "",
         auth_value6: "",
         auto_status_check: "Inactive",
-        status: "",
+        status: "Inactive",
         deleted: "No",
         created_at: new Date(),
         updated_at: dayjs().toDate(),
@@ -61,20 +61,20 @@ exports.apiCreate = async (req, res) => {
       }
     });
 
-        const formattedApi = convertBigIntToString({
-         id: newApi.id,
-         api_name: newApi.api_name,
-         auto_status_check: newApi.auto_status_check,
-         status: newApi.status,
-         created_at: newApi.created_at ? ISTFormat(newApi.created_at) : null,
-         updated_at: ISTFormat(newApi.updated_at),
-         deleted_at: newApi.deleted_at ? ISTFormat(newApi.deleted_at) : null
-       });
-   
-       return success(res, "API saved successfully",formattedApi);
+    const formattedApi = convertBigIntToString({
+      id: newApi.id,
+      api_name: newApi.api_name,
+      auto_status_check: newApi.auto_status_check,
+      status: newApi.status,
+      created_at: newApi.created_at ? ISTFormat(newApi.created_at) : null,
+      updated_at: ISTFormat(newApi.updated_at),
+      deleted_at: newApi.deleted_at ? ISTFormat(newApi.deleted_at) : null
+    });
+
+    return success(res, "API saved successfully", formattedApi);
   } catch (err) {
-        console.error(err);
-       return error(res, "API saved failed", err);
+    console.error(err);
+    return error(res, "API saved failed", err);
   }
 };
 
@@ -82,7 +82,7 @@ exports.apiChangeStatus = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
-     // find API first
+    // find API first
     const apiRecord = await db.apis.findUnique({ where: { id } });
     if (!apiRecord) {
       return error(res, "API not found");
@@ -94,7 +94,7 @@ exports.apiChangeStatus = async (req, res) => {
     // update
     const updatedApi = await db.apis.update({
       where: { id },
-      data: { 
+      data: {
         auto_status_check: newStatus,
         updated_at: dayjs().toDate(),
       }
@@ -115,8 +115,8 @@ exports.apiChangeStatus = async (req, res) => {
 
     return success(res, "API status updated successfully");
   } catch (err) {
-       console.error(err);
-       return error(res, "API status change failed", err);
+    console.error(err);
+    return error(res, "API status change failed", err);
   }
 };
 
@@ -141,7 +141,7 @@ exports.apiSoftDelete = async (req, res) => {
       data: {
         deleted: "Yes",
         deleted_at: dayjs().toDate(),
-       
+
       }
     });
 
@@ -165,24 +165,42 @@ exports.apiSoftDelete = async (req, res) => {
   }
 };
 
+
+
 exports.getAllApis = async (req, res) => {
   try {
-    // fetch only non-deleted apis
+    const offset = safeParseInt(req.body.offset, 0);
+    const limit = safeParseInt(req.body.limit, 10);
+
+    const api_name = req.body.api_name;
+    const statusFilter = normalizeStatus(req.body.status);
+
+    // Build where condition
+    const where = {
+      deleted: "No",
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(api_name ? { api_name: { contains: api_name, mode: "insensitive" } } : {})
+    };
+
+    // Fetch filtered records
     const apis = await db.apis.findMany({
-      where: { deleted: "No" },
-    //   orderBy: { serial_no: "asc" }
+      where,
+      skip: offset * 10,
+      take: limit,
+      orderBy: { id: "asc" }
     });
 
-    // count total non-deleted apis
-    const total = await db.apis.count({
-      where: { deleted: "No" }
-    });
+    // Count total non-deleted
+    const total = await db.apis.count({ where: { deleted: "No" } });
 
-    // format each record
-    const formattedApis = apis.map(api =>
+    // Count after filter
+    const filteredCount = await db.apis.count({ where });
+
+    // Format
+    const formattedApis = apis.map((api, index) =>
       convertBigIntToString({
         id: api.id,
-        serial_no: api.serial_no,
+        serial_no: offset * limit + (index + 1),
         api_name: api.api_name,
         auto_status_check: api.auto_status_check,
         status: api.status,
@@ -193,8 +211,14 @@ exports.getAllApis = async (req, res) => {
       })
     );
 
-    return success(res, "APIs fetched successfully", total,formattedApis
+    return successGetAll(
+      res,
+      "APIs fetched successfully",
+      formattedApis,
+      total,
+      filteredCount
     );
+
   } catch (err) {
     console.error(err);
     return error(res, "Failed to fetch APIs", err);
@@ -309,14 +333,14 @@ exports.updatekeyvalue = async (req, res) => {
     });
 
     // Format response
-   // Format response with only updated fields
-const formattedApi = convertBigIntToString({
-  id: updatedApi.id,
-  ...Object.fromEntries(
-    Object.keys(updateData).map((field) => [field, updatedApi[field]])
-  ),
-  updated_at: ISTFormat(updatedApi.updated_at),
-});
+    // Format response with only updated fields
+    const formattedApi = convertBigIntToString({
+      id: updatedApi.id,
+      ...Object.fromEntries(
+        Object.keys(updateData).map((field) => [field, updatedApi[field]])
+      ),
+      updated_at: ISTFormat(updatedApi.updated_at),
+    });
 
 
     return success(res, "Auth fields updated successfully", formattedApi);

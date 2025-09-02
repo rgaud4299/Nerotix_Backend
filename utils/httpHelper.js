@@ -65,7 +65,6 @@ async function makeAxiosRequest(
     }
 
     // Request
-    console.log(config);
     
     const axiosResponse = await axios.request(config);
 

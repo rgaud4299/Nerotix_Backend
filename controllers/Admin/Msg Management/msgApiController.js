@@ -6,7 +6,7 @@ const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const { logAuditTrail } = require('../../../services/auditTrailService');
 const { getNextSerial, reorderSerials } = require('../../../utils/serial');
-const { success, error } = require('../../../utils/response');
+const { success, error, successGetAll } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 const { RESPONSE_CODES } = require('../../../utils/helper');
 
@@ -66,7 +66,6 @@ exports.addMsgApi = async (req, res) => {
         throw new Error('DUPLICATE_API');
       }
 
-      const nextSerial = await getNextSerial(tx, 'msg_apis');
       const api = await tx.msg_apis.create({
         data: {
           api_name,
@@ -77,7 +76,7 @@ exports.addMsgApi = async (req, res) => {
           status,
           created_at: dateObj,
           updated_at: dateObj,
-          serial_no: nextSerial
+
         }
       });
 
@@ -98,7 +97,7 @@ exports.addMsgApi = async (req, res) => {
     const safeApi = {
       ...newApi,
       id: newApi.id.toString(),
-      serial_no: newApi.serial_no.toString()
+
     };
 
     return success(res, 'Message API Added Successfully');
@@ -135,6 +134,7 @@ exports.getMsgApiList = async (req, res) => {
   const searchValue = req.body.searchValue || '';
   const apiType = req.body.api_type;
   const statusFilter = req.body.status;
+  const skip = offset * 10;
 
   try {
     const where = {
@@ -150,28 +150,22 @@ exports.getMsgApiList = async (req, res) => {
       prisma.msg_apis.count({ where }),
       prisma.msg_apis.findMany({
         where,
-        skip: offset * limit,
+        skip,
         take: limit,
-        orderBy: { serial_no: 'asc' }
+        orderBy: { id: 'asc' }
       })
     ]);
 
-    const serializedData = data.map(item => ({
+    const serializedData = data.map((item, index) => ({
       ...item,
+      serial_no: skip + index + 1,
       id: item.id.toString(),
-      serial_no: item.serial_no.toString(),
       created_at: formatISTDate(item.created_at),
       updated_at: formatISTDate(item.updated_at)
     }));
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Data fetched successfully',
-      recordsTotal: total,
-      recordsFiltered: filteredCount,
-      data: serializedData
-    });
+
+    return successGetAll(res, 'Data fetched successfully', serializedData, total, filteredCount);
 
   } catch (err) {
     console.error(err);
@@ -269,7 +263,7 @@ exports.updateMsgApi = async (req, res) => {
         action: 'update',
         user_id: req.user?.id || null,
         ip_address: req.ip,
-        remark:` Messaging API "${api_name}" updated`,
+        remark: ` Messaging API "${api_name}" updated`,
         updated_by: req.user?.id || null,
         status
       });
@@ -313,7 +307,7 @@ exports.deleteMsgApi = async (req, res) => {
         action: 'delete',
         user_id: req.user?.id,
         ip_address: req.ip,
-        remark:` Messaging API deleted`,
+        remark: ` Messaging API deleted`,
         deleted_by: req.user?.id || null,
         status: 'Deleted'
       }).catch(err => console.error('Audit log failed:', err));
@@ -345,7 +339,7 @@ exports.changeMsgApiStatus = async (req, res) => {
     }
 
     // Toggle logic
-    const newStatus = api.status.toLowerCase() === 'active' ? 'inactive' : 'active';
+    const newStatus = api.status === 'Active' ? 'Inactive' : 'Active';
 
     // Update DB
     const updatedApi = await prisma.msg_apis.update({
@@ -373,7 +367,7 @@ exports.changeMsgApiStatus = async (req, res) => {
     // Yahan par success ke saath updated record ka data bhi bhejo
     return res.status(200).json({
       success: true,
-      message:` Message API status changed to ${newStatus}`,
+      message: ` Message API status changed to ${newStatus}`,
       data: {
         id: updatedApi.id.toString(),
         status: updatedApi.status

@@ -28,7 +28,7 @@ const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
   router.post('/apis/add', addApiValidation, apiCreate);
   router.patch("/apis/changeStatus/:id", IdParamValidation, apiChangeStatus);
   router.delete("/apis/delete/:id", IdParamValidation, apiSoftDelete);
-  router.get("/apis/get-api", getAllApis);
+  router.post("/apis/get-api", getAllApis);
   router.patch("/apis/update/:id", IdParamValidation, updateAuthValidation, updateApi);
   router.patch('/apis/add-keys/:id', IdParamValidation, updatekeyvalueValidation, updatekeyvalue);
 });

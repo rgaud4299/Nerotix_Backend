@@ -7,7 +7,7 @@ const timezone = require('dayjs/plugin/timezone');
 const { logAuditTrail } = require('../../../services/auditTrailService');
 const { RESPONSE_CODES } = require('../../../utils/helper');
 const { getNextSerial, reorderSerials } = require('../../../utils/serial');
-const { success, error } = require('../../../utils/response');
+const { success, error, successGetAll } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 
 dayjs.extend(utc);
@@ -41,11 +41,10 @@ exports.addMsgContent = async (req, res) => {
 
     const dateObj = dayjs().tz('Asia/Kolkata').toDate();
     const sendFlags = normalizeSendFlags(req.body);
-    const nextSerial = await getNextSerial(prisma, 'msg_contents');
 
     const newContent = await prisma.msg_contents.create({
       data: {
-        serial_no: nextSerial,
+       
         message_type,
         ...sendFlags,
         sms_template_id: req.body.sms_template_id,
@@ -83,30 +82,27 @@ exports.addMsgContent = async (req, res) => {
 exports.getMsgContentList = async (req, res) => {
   const offset = safeParseInt(req.body.offset, 0);
   const limit = safeParseInt(req.body.limit, 10);
+  const skip = offset * 10;
 
   try {
     const [total, data] = await Promise.all([
       prisma.msg_contents.count(),
       prisma.msg_contents.findMany({
-        skip: offset * limit,
+        skip,
         take: limit,
-        orderBy: { serial_no: 'asc' }
+        orderBy: { id: 'asc' }
       })
     ]);
 
-    const serializedData = convertBigIntToString(data).map(item => ({
+    const serializedData = convertBigIntToString(data).map((item,index) => ({
       ...item,
+      serial_no: skip + index + 1,
       created_at: formatISTDate(item.created_at),
       updated_at: formatISTDate(item.updated_at)
     }));
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Data fetched successfully',
-      recordsTotal: total,
-      data: serializedData
-    });
+        return successGetAll(res,'Data fetched successfully',serializedData, total, 0);
+
   } catch (err) {
     console.error(err);
     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);

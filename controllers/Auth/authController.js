@@ -91,14 +91,14 @@ exports.loginUser = async (req, res) => {
   }
 
   try {
-    let user = await prisma.users.findUnique({ where: { email } });    
+    let user = await prisma.users.findUnique({ where: { email } });
     const tempUser = await prisma.temp_users.findUnique({ where: { email } });
 
     if (tempUser) {
-      if (!tempUser.is_mobile_verified) { 
+      if (!tempUser.is_mobile_verified) {
         await sendOtpRegistration(tempUser.mobile_no, "mobile", tempUser.id);
         return success(res, "Mobile verification pending", {
-          verify: "mobile", 
+          verify: "mobile",
           info: maskMobile(tempUser.mobile_no),
           statusCode: RESPONSE_CODES.VERIFICATION_PENDING,
         });
@@ -178,17 +178,17 @@ exports.loginUser = async (req, res) => {
       return error(res, "Unauthorized role", RESPONSE_CODES.FAILED, 403);
     }
 
-    if (user.status !== "Active") { 
+    if (user.status !== "Active") {
       return error(res, "Account not active", RESPONSE_CODES.FAILED, 403);
     }
 
-    const tokenPayload = { id:parseInt(user.id), uuid: user.uuid, email: user.email, role: user.role };
+    const tokenPayload = { id: parseInt(user.id), uuid: user.uuid, email: user.email, role: user.role };
     const token = generateToken(tokenPayload);
     const expiresAt = dayjs().add(8, "hour").toDate();
 
     await prisma.user_tokens.create({
       data: {
-        user_id: user.id, 
+        user_id: user.id,
         token,
         token_type: "app",
         expires_at: expiresAt,
@@ -290,7 +290,7 @@ exports.verifyOtp = async (req, res) => {
       return error(res, 'Mobile OTP expired', RESPONSE_CODES.FAILED, 400);
     }
 
-    
+
     await prisma.otp_verifications.updateMany({
       where: { id: { in: [emailOtpRecord.id, mobileOtpRecord.id] } },
       data: { is_verified: true },
@@ -309,14 +309,14 @@ exports.verifyOtp = async (req, res) => {
 
     const newUser = await prisma.users.create({
       data: {
-       uuid: randomUUID().toString(),
+        uuid: randomUUID().toString(),
         name: tempUser.name,
         email: tempUser.email,
         mobile_no: tempUser.mobile_no,
         password: tempUser.password,
-        status: 'active',
-        otp_status: 'active',
-        role: 'user',
+        status: 'Active',
+        otp_status: 'Active',
+        role: 'User',
         created_at: now,
         updated_at: now,
       },
@@ -345,3 +345,40 @@ exports.verifyOtp = async (req, res) => {
     return error(res, 'Internal server error', RESPONSE_CODES.FAILED, 500);
   }
 };
+
+
+
+exports.logoutUser = async (req, res) => {
+  try {
+    const { user_id } = req.user?.user_id;
+    const token = req.headers["authorization"]?.replace("Bearer ", "");
+    if (!token) {
+      return error(res, "Token required", RESPONSE_CODES.FAILED, 401);
+    }
+    // Token delete kar do
+    await prisma.user_tokens.delete({
+      where: { token },
+    });
+
+    // Log logout history
+    // await prisma.login_history.create({
+    //   data: {
+    //     user_id: user_id,
+    //     device: "", // optional: can take again from user-agent
+    //     operating_system: "",
+    //     browser: "",
+    //     ip_address: getClientIp(req),
+    //     user_agent: req.headers["user-agent"] || "",
+    //     status: "Success",
+    //     created_at: new Date(),
+    //     updated_at: new Date(),
+    //   },
+    // });
+
+    return success(res, "Logout successful");
+  } catch (err) {
+    console.error("Logout error:", err);
+    return error(res, "Server error", RESPONSE_CODES.FAILED, 500);
+  }
+};
+

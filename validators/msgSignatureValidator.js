@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const allowedSignatureTypes = ['sms', 'whatsapp']; // compare lowercase
-const allowedStatuses = ['active', 'inactive'];
+const allowedStatuses = ['Active', 'Inactive'];
 
 const addOrUpdateSignatureValidator = [
   body('signature')

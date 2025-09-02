@@ -2,15 +2,16 @@
 const { PrismaClient } = require("@prisma/client");
 const db = new PrismaClient();
 const dayjs = require("dayjs");
+const { RESPONSE_CODES, sendOtpRegistration } = require("../../../../utils/helper");
+const { success, error } = require("../../../../utils/response");
+const { sendDynamicMessage } = require("../../../../utils/Helper/sendDynamicMessage");
 // const { logAuditTrail } = require("../../../services/auditTrailService");
 // const { safeParseInt, convertBigIntToString } = require("../../../utils/parser");
 
 const utc = require("dayjs/plugin/utc");
 const tz = require("dayjs/plugin/timezone");
-const { RESPONSE_CODES, sendOtpRegistration } = require("../../../../utils/helper");
-const sendOtp = require("../../../../utils/Helper/SendOtp");
-const { success, error } = require("../../../../utils/response");
-const { sendDynamicMessage } = require("../../../../utils/Helper/sendDynamicMessage");
+const { sendDynamicMessageQ } = require("../../../../utils/Msg_Queue/producer");
+
 dayjs.extend(utc);
 dayjs.extend(tz);
 
@@ -22,7 +23,6 @@ exports.generateTokenOTP = async (req, res) => {
 
   try {
     const user_id = req.user.user_id;
-// console.log("req.user.user_id",req.user.user_id);
 
     const msg_cont_id = 1;
     const user_data = await db.users.findFirst({
@@ -57,7 +57,6 @@ exports.generateTokenOTP = async (req, res) => {
     // create otp and register otp in table 
     const mobile_Otp = await sendOtpRegistration(user_data.mobile_no, "mobile", user_id);
 
-
     const placeholders = {
       "{FULL_NAME}": user_data.name,
       "{OTP}": mobile_Otp
@@ -71,10 +70,11 @@ exports.generateTokenOTP = async (req, res) => {
       attachment: ""
     };
 
-    sendDynamicMessage(msg_data);
+    // sendDynamicMessage(msg_data);
+    const responseMsg = await sendDynamicMessageQ(msg_data)
 
     if (mobile_Otp) {
-      return success(res, " OTP sent to your registered mobile no. ", null, RESPONSE_CODES.SUCCESS);
+      return success(res, responseMsg, null, RESPONSE_CODES.SUCCESS);
     } else {
       return error(
         res,
@@ -83,7 +83,6 @@ exports.generateTokenOTP = async (req, res) => {
         400
       );
     }
-
   } catch (err) {
     console.error(err);
     return error(

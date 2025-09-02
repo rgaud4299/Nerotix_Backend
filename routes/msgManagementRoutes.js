@@ -21,6 +21,8 @@ const {
 
 const securedRoutes = createSecuredRoutes(authMiddleware, (router) => {
   // Msg APIs
+
+});
   router.post('/msg-apis/add', addApiValidation, controller.addMsgApi);
   router.post('/msg-apis/get-list', controller.getMsgApiList);
   router.get('/msg-apis/byid/:id', getApiByIdValidation, controller.getMsgApiById);
@@ -38,8 +40,6 @@ const securedRoutes = createSecuredRoutes(authMiddleware, (router) => {
   router.put('/msg-contents/updated/:id', updateMsgContentValidation, msgContentsController.updateMsgContent);
   router.delete('/msg-contents/delete/:id', deleteMsgContentValidation, msgContentsController.deleteMsgContent);
 
-});
-
-router.use('/', securedRoutes);
+// router.use('/', securedRoutes);
 
 module.exports = router;

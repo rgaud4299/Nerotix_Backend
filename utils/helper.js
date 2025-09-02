@@ -22,7 +22,7 @@ const maskEmail = (email) => {
 const sendOtpRegistration = async (receiver, type, user_id) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-const OtpRegistration=  await prisma.otp_verifications.create({
+  const OtpRegistration = await prisma.otp_verifications.create({
     data: {
       user_id: user_id,
       otp: parseInt(otp),
@@ -61,6 +61,17 @@ const RESPONSE_CODES = {
   VERIFICATION_PENDING: 5
 };
 
+function normalizeStatus(status) {
+  if (!status) return null;
+
+  const value = status.toString().trim().toLowerCase();
+  if (value === 'active') return 'Active';
+  if (value === 'inactive') return 'Inactive';
+
+  return null; // agar galat value hai
+}
+
+
 module.exports = {
   randomUUID,
   maskMobile,
@@ -68,6 +79,7 @@ module.exports = {
   sendOtpRegistration,
   getClientIp,
   useragent,
-  RESPONSE_CODES
+  RESPONSE_CODES,
+  normalizeStatus
 };
 

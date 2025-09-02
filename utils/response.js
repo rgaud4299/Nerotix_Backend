@@ -16,4 +16,17 @@ function error(res, message, statusCode = RESPONSE_CODES.FAILED, httpCode = 500)
   });
 }
 
-module.exports = { success, error };
+
+function successGetAll(res, message, data = [], total = 0, filteredCount = 0, statusCode =  RESPONSE_CODES.SUCCESS) {
+  return res.status(200).json({
+    success: true,
+    statusCode,
+    message,
+    recordsTotal: total,
+    recordsFiltered: filteredCount,
+    data
+  });
+}
+
+
+module.exports = { success, error,successGetAll };
