@@ -115,7 +115,6 @@ model otp_verifications {
   user_id     BigInt?
   type        String?  
 
-  @@index([user_id, type], map: "idx_user_id_type")
 }
 
 model audit_trail {

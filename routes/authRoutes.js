@@ -13,6 +13,6 @@ const {
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.loginUser);
 router.post('/verify-otp', verifyOtpValidation, authController.verifyOtp);
-router.get('/logout',authMiddleware,authController.logoutUser);
+router.post('/logout',authMiddleware,authController.logoutUser);
 
 module.exports = router;

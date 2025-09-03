@@ -14,7 +14,7 @@ const { authorizeRole } = require("../middleware/authorizeRole");
 const { generateTokenOTP } = require("../controllers/User/Developer API/utils/generateTokenOtp");
 const { verifyTokenOtpController } = require("../controllers/User/Developer API/utils/verifyTokenOtpController");
 
-
+ 
 
 const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
  // all whitelisted IPs
@@ -29,10 +29,10 @@ router.get('/webhook/get-webhook', ctrl.getWebhook);
 // userTokens
 router.post("/tokens/generate", generateTokenValidation, controller.generateToken);
 router.get("/tokens/get-list", controller.getTokensByUserId);
-router.put("/tokens/status/:id", TokenchangeStatusValidation, controller.changeTokenStatus);
+// router.put("/tokens/status/:id", TokenchangeStatusValidation, controller.changeTokenStatus);
 
 router.get("/tokens/send-otp",generateTokenOTP);
-router.post("/tokens/verify-otp", verifyTokenOtpController);
+router.post("/tokens/verify-otp/status", verifyTokenOtpController);
 });
 
 

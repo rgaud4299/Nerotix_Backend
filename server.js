@@ -14,6 +14,7 @@ const productManagementRoutes = require('./routes/productManagementRoutes');
 const settingManagementRoutes = require('./routes/settingManagements');
 const msgManagementRoutes = require('./routes/msgManagementRoutes');
 const devloperAPi= require('./routes/devloperApiRoutes');
+const walletRoutes = require("./routes/walletApiRoutes")
 
 const path = require("path");
 const app = express();
@@ -31,7 +32,7 @@ app.use('/api/v1/developer-api',devloperAPi);
 app.use('/api/v1/product-management', productManagementRoutes);
 app.use('/api/v1/setting-management', settingManagementRoutes);
 app.use('/api/v1/msg-management', msgManagementRoutes);
-
+app.use('/api/v1/wallet-management', walletRoutes )
 
 // Server Start
 const PORT = process.env.PORT || 5000;

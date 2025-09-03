@@ -245,7 +245,8 @@ exports.verifyOtp = async (req, res) => {
 
     const id = decoded.id;
     const tempUser = await prisma.temp_users.findUnique({ where: { id } });
-
+   console.log("temp",tempUser);
+   
     if (!tempUser) {
       const alreadyRegistered = await prisma.users.findUnique({ where: { email: decoded.email } });
       if (alreadyRegistered) {
@@ -261,6 +262,7 @@ exports.verifyOtp = async (req, res) => {
         otp: parseInt(emailOtp, 10),
       },
     });
+   console.log("emailOtpRecord",emailOtpRecord);
 
     if (!emailOtpRecord) {
       return error(res, 'Invalid Email OTP', RESPONSE_CODES.FAILED, 400);
@@ -347,33 +349,31 @@ exports.verifyOtp = async (req, res) => {
 };
 
 
-
 exports.logoutUser = async (req, res) => {
   try {
-    const { user_id } = req.user?.user_id;
+    const user_id = req.user?.user_id; // correct destructuring
+    const { all_device } = req.body; // optional param
+
     const token = req.headers["authorization"]?.replace("Bearer ", "");
     if (!token) {
       return error(res, "Token required", RESPONSE_CODES.FAILED, 401);
     }
-    // Token delete kar do
-    await prisma.user_tokens.delete({
-      where: { token },
-    });
 
-    // Log logout history
-    // await prisma.login_history.create({
-    //   data: {
-    //     user_id: user_id,
-    //     device: "", // optional: can take again from user-agent
-    //     operating_system: "",
-    //     browser: "",
-    //     ip_address: getClientIp(req),
-    //     user_agent: req.headers["user-agent"] || "",
-    //     status: "Success",
-    //     created_at: new Date(),
-    //     updated_at: new Date(),
-    //   },
-    // });
+
+    if (all_device) {
+      // delete all APP tokens for this user
+      await prisma.user_tokens.deleteMany({
+        where: {
+          user_id: user_id,
+          token_type: "app"
+        },
+      });
+    } else {
+      // delete only current token
+      await prisma.user_tokens.delete({
+        where: { token },
+      });
+    }
 
     return success(res, "Logout successful");
   } catch (err) {
@@ -381,4 +381,5 @@ exports.logoutUser = async (req, res) => {
     return error(res, "Server error", RESPONSE_CODES.FAILED, 500);
   }
 };
+
 
