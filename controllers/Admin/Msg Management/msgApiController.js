@@ -10,17 +10,7 @@ const { success, error, successGetAll } = require('../../../utils/response');
 const { safeParseInt, convertBigIntToString } = require('../../../utils/parser');
 const { RESPONSE_CODES } = require('../../../utils/helper');
 
-// const { PrismaClient } = require('@prisma/client');
-// const prisma = new PrismaClient();
-// const { validationResult } = require('express-validator');
-// const dayjs = require('dayjs');
-// const utc = require('dayjs/plugin/utc');
-// const timezone = require('dayjs/plugin/timezone');
-// const { logAuditTrail } = require('../services/auditTrailService');
-// const { RESPONSE_CODES } = require('../utils/helper');
-// const { getNextSerial, reorderSerials } = require('../utils/serial');
-// const { success, error } = require('../utils/response');
-// const { safeParseInt, convertBigIntToString } = require('../utils/parser');
+
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -31,28 +21,8 @@ function formatISTDate(date) {
 
 
 exports.addMsgApi = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return error(
-      res,
-      errors.array()[0].msg,
-      RESPONSE_CODES.VALIDATION_ERROR,
-      422
-    );
-  }
 
   const { api_name, api_type, base_url, params, method, status } = req.body;
-
-  // const validStatuses = ['active', 'inactive'];
-  // if (!validStatuses.includes(status?.toLowerCase())) {
-  //   return error(
-  //     res,
-  //     'Status must be active or inactive',
-  //     RESPONSE_CODES.VALIDATION_ERROR,
-  //     422
-  //   );
-  // }
-
   const dateObj = dayjs().tz('Asia/Kolkata').toDate();
 
   try {
@@ -60,7 +30,7 @@ exports.addMsgApi = async (req, res) => {
     const newApi = await prisma.$transaction(async (tx) => {
       const existingApi = await tx.msg_apis.findFirst({
         where: { api_name: { equals: api_name, mode: 'insensitive' } }
-      });
+      }); 
 
       if (existingApi) {
         throw new Error('DUPLICATE_API');
@@ -176,6 +146,7 @@ exports.getMsgApiList = async (req, res) => {
 // Get API by ID
 exports.getMsgApiById = async (req, res) => {
   const id = safeParseInt(req.params.id);
+
   if (!id || id <= 0) {
     return error(res, 'Message API Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
   }

@@ -1,14 +1,11 @@
-// validators/authValidator.js
-const { body } = require('express-validator');
+// File: validators/authValidator.js
 
-// OTP length constant
-const OTP_LENGTH = 6;
+const { body } = require('express-validator');
+const { handleValidation, requiredStringRule, otpRule } = require('./commonValidators');
 
 // Register Validation
 const registerValidation = [
-  body('name')
-    .trim()
-    .notEmpty().withMessage('Name is required'),
+  requiredStringRule('name', 'Name is required'),
 
   body('email')
     .trim()
@@ -29,10 +26,12 @@ const registerValidation = [
     .notEmpty().withMessage('Mobile number is required')
     .isLength({ min: 10, max: 10 }).withMessage('Mobile number must be exactly 10 digits')
     .isNumeric().withMessage('Mobile number must contain only digits'),
+  handleValidation,
 ];
 
-//Login Validation 
+//Login Validation
 const loginValidation = [
+
   body('email')
     .trim()
     .notEmpty().withMessage('Email is required')
@@ -48,22 +47,16 @@ const loginValidation = [
   body('longitude')
     .optional()
     .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude value'),
+  handleValidation,
+  
 ];
 
-//Verify OTP Validation 
+//Verify OTP Validation
 const verifyOtpValidation = [
-  body('tempUserId')
-    .notEmpty().withMessage('Temp User ID is required'),
-
-  body('emailOtp')
-    .notEmpty().withMessage('Email OTP is required')
-    .isNumeric().withMessage('Email OTP must be numeric')
-    .isLength({ min: OTP_LENGTH, max: OTP_LENGTH }).withMessage(`Email OTP must be ${OTP_LENGTH} digits`),
-
-  body('mobileOtp')
-    .notEmpty().withMessage('Mobile OTP is required')
-    .isNumeric().withMessage('Mobile OTP must be numeric')
-    .isLength({ min: OTP_LENGTH, max: OTP_LENGTH }).withMessage(`Mobile OTP must be ${OTP_LENGTH} digits`),
+  requiredStringRule('tempUserId', 'Temp User ID is required'),
+  otpRule('emailOtp'),
+  otpRule('mobileOtp'),
+  handleValidation,
 ];
 
 module.exports = {

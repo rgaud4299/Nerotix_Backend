@@ -30,3 +30,4 @@ function successGetAll(res, message, data = [], total = 0, filteredCount = 0, st
 
 
 module.exports = { success, error,successGetAll };
+  

@@ -25,14 +25,15 @@ const {
   updateProductPriceValidator,
   deleteProductPriceValidator,
 } = require('../validators/productManagement');
+const { idParamRule, idParamValid, handleValidation, convertId } = require('../validators/commonValidators');
 
 
 const securedRoutes = createSecuredRoutes(authMiddleware, (router) => {
   // Product Category Routes
   router.post('/category/add', addProductCategoryValidation, productCategoryController.addProductCategory);
   router.post('/category/get-list', productCategoryController.getProductCategoryList);
-  router.get('/category/byid/:id', productCategoryController.getProductCategoryById);
-  router.put('/category/update/:id', updateProductCategoryValidation, productCategoryController.updateProductCategory);
+  router.get('/category/byid/:id',convertId, productCategoryController.getProductCategoryById);
+  router.put('/category/update/:id',updateProductCategoryValidation, productCategoryController.updateProductCategory);
   router.delete('/category/delete/:id', deleteCategoryValidation, productCategoryController.deleteProductCategory);
   router.patch('/category/change-status/:id', changeCategoryStatusValidation, productCategoryController.changeProductCategoryStatus);
 

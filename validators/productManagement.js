@@ -1,52 +1,37 @@
+
+
+// File: productsAndPricesValidator.js
+
 const { body, param } = require('express-validator');
+const { handleValidation, idParamRule, idBodyRule, requiredStringRule, StatusRule } = require("./commonValidators");
 
 // Product Category Validators
-
-// Common rules
-const categoryNameRule = body('name')
-  .trim()
-  .notEmpty().withMessage('Category name is required')
+const categoryNameRule = requiredStringRule('name', 'Category name is required')
   .isLength({ max: 100 }).withMessage('Category name must be at most 100 characters long');
 
-const categoryStatusRule = body('status')
-  .notEmpty().withMessage('Status is required')
-  .isIn(['Active', 'Inactive']).withMessage('Status must be Active or Inactive');
+const categoryStatusRule = StatusRule('status', 'Status must be Active or Inactive')
+  .notEmpty().withMessage('Status is required');
 
-// Param ID rule
-const categoryIdParamRule = param('id')
-  .isInt({ gt: 0 }).withMessage('Valid Category ID is required');
+const categoryIdParamRule = idParamRule('id', 'Valid Category ID is required');
 
 // Validators
-const addProductCategoryValidation = [categoryNameRule, categoryStatusRule];
-const updateProductCategoryValidation = [categoryIdParamRule, categoryNameRule, categoryStatusRule];
-const deleteCategoryValidation = [categoryIdParamRule];
-const changeCategoryStatusValidation = [categoryIdParamRule, categoryStatusRule];
-
+const addProductCategoryValidation = [categoryNameRule, categoryStatusRule, handleValidation];
+const updateProductCategoryValidation = [categoryIdParamRule, categoryNameRule, categoryStatusRule, handleValidation];
+const deleteCategoryValidation = [categoryIdParamRule, handleValidation];
+const changeCategoryStatusValidation = [categoryIdParamRule, categoryStatusRule, handleValidation];
 
 
 // Product Validators
-
-// Common rules
-const productIdParamRule = param('id')
-  .isInt({ gt: 0 }).withMessage('Valid product ID is required');
-
-const productCategoryIdRule = body('category_id')
-  .notEmpty().withMessage('Category ID is required')
-  .isInt({ gt: 0 }).withMessage('Valid category_id must be a positive integer');
-
-const productNameRule = body('name')
-  .trim()
-  .notEmpty().withMessage('Product name is required')
+const productIdParamRule = idParamRule('id', 'Valid product ID is required');
+const productCategoryIdRule = idBodyRule('category_id', 'Valid category_id must be a positive integer');
+const productNameRule = requiredStringRule('name', 'Product name is required')
   .isLength({ max: 150 }).withMessage('Product name must be at most 150 characters');
-
 const productDescriptionRule = body('description')
   .optional({ nullable: true })
   .trim()
   .isLength({ max: 1000 }).withMessage('Description must be at most 1000 characters');
-
-const productStatusRule = body('status')
-  .notEmpty().withMessage('Status is required')
-  .isIn(['Active', 'Inactive']).withMessage('Status must be Active or Inactive');
+const productStatusRule = StatusRule('status', 'Status must be Active or Inactive')
+  .notEmpty().withMessage('Status is required');
 
 // Validators
 const addProductValidation = [
@@ -54,6 +39,7 @@ const addProductValidation = [
   productNameRule,
   productDescriptionRule,
   productStatusRule,
+  handleValidation,
 ];
 
 const updateProductValidation = [
@@ -62,34 +48,28 @@ const updateProductValidation = [
   productNameRule,
   productDescriptionRule,
   productStatusRule,
+  handleValidation,
 ];
 
 const changeProductStatusValidation = [
   productIdParamRule,
   productStatusRule,
+  handleValidation,
 ];
 
 const deleteProductValidation = [
   productIdParamRule,
+  handleValidation,
 ];
 
 
 // Product Price Validators
-
 const allowedCurrencies = ['INR'];
-
-const priceProductIdRule = body('product_id')
-  .notEmpty().withMessage('Product ID is required')
-  .isInt({ gt: 0 }).withMessage('Product ID must be a positive integer');
-
-const priceIdParamRule = param('id')
-  .notEmpty().withMessage('Price ID is required')
-  .isInt({ gt: 0 }).withMessage('Valid Price ID is required');
-
+const priceProductIdRule = idBodyRule('product_id', 'Product ID must be a positive integer');
+const priceIdParamRule = idParamRule('id', 'Valid Price ID is required');
 const priceRule = body('price')
   .notEmpty().withMessage('Price is required')
   .isFloat({ gt: 0 }).withMessage('Price must be a positive number');
-
 const currencyRule = body('currency')
   .notEmpty().withMessage('Currency is required')
   .isString().withMessage('Currency must be a string')
@@ -106,20 +86,20 @@ const createProductPriceValidator = [
   priceProductIdRule,
   priceRule,
   currencyRule,
+  handleValidation,
 ];
 
 const updateProductPriceValidator = [
   priceIdParamRule,
   priceRule,
   currencyRule,
+  handleValidation,
 ];
 
 const deleteProductPriceValidator = [
   priceIdParamRule,
+  handleValidation,
 ];
-
-
-// Export All Validators
 
 module.exports = {
   // Product Category

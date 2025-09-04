@@ -17,19 +17,19 @@ dayjs.extend(tz);
 
 // Add new IP
 exports.addIp = async (req, res) => {
-  const {  ip_address } = req.body;
-const user_id = String(req.user?.user_id || ""); // Always as String
+  const { ip_address } = req.body;
+  const user_id = String(req.user?.user_id || ""); // Always as String
 
   try {
-   
-    const existingUser =await prisma.users.findUnique({
-          where: { id: parseInt(user_id) },
-        });
-    
+
+    const existingUser = await prisma.users.findUnique({
+      where: { id: parseInt(user_id) },
+    });
+
     if (!existingUser) {
       return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
     }
-    
+
     const count = await prisma.user_ip_whitelist.count({
       where: { user_id },
     });
@@ -89,19 +89,19 @@ exports.getAllIp = async (req, res) => {
   try {
     const user_id = String(req.user?.user_id || ""); // Always as String
 
-   if (!user_id) {
+    if (!user_id) {
       return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
     }
     // 1️⃣ Check if user already has 3 IPs
     // Check if user exists in DB
-    const existingUser =await prisma.users.findUnique({
-          where: { id: parseInt(user_id) },
-        });
-    
+    const existingUser = await prisma.users.findUnique({
+      where: { id: parseInt(user_id) },
+    });
+
     if (!existingUser) {
       return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
     }
-   
+
 
     // get all IPs for this user
     const ipList = await prisma.user_ip_whitelist.findMany({
@@ -112,14 +112,14 @@ exports.getAllIp = async (req, res) => {
     if (!ipList || ipList.length === 0) {
       return error(res, "No IPs found for this user", RESPONSE_CODES.NOT_FOUND, 404);
     }
-      const total = await prisma.user_ip_whitelist.count({
+    const total = await prisma.user_ip_whitelist.count({
       where: { user_id },
     });
-    
+
     // format data
-    const formatted = ipList.map((ip,index) => convertBigIntToString({
+    const formatted = ipList.map((ip, index) => convertBigIntToString({
       id: ip.id,
-      serial_no:index+1,
+      serial_no: index + 1,
       user_id: ip.user_id,
       ip_address: ip.ip_address,
       status: ip.status,
@@ -127,7 +127,7 @@ exports.getAllIp = async (req, res) => {
       updated_at: ip.updated_at ? ISTFormat(ip.updated_at) : null,
     }));
 
-     return res.status(200).json({
+    return res.status(200).json({
       success: true,
       statusCode: 1,
       message: 'Data fetched successfully',
@@ -146,7 +146,7 @@ exports.getAllIp = async (req, res) => {
 exports.changeStatus = async (req, res) => {
 
   const { id } = req.params;
-  const { status } = req.body;
+
 
   try {
     const ip = await prisma.user_ip_whitelist.findUnique({
@@ -157,10 +157,13 @@ exports.changeStatus = async (req, res) => {
       return error(res, "IP not found", RESPONSE_CODES.NOT_FOUND, 404);
     }
 
+    // current status check karke new status banalo
+    const newStatus = ip.status === "Active" ? "Inactive" : "Active";
+
     const updated = await prisma.user_ip_whitelist.update({
       where: { id: parseInt(id) },
       data: {
-        status,
+        status: newStatus,
         updated_at: dayjs().toDate(),
       },
     });

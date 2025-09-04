@@ -77,10 +77,7 @@ exports.register = async (req, res) => {
 
 //  LOGIN
 exports.loginUser = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-  }
+
 
   const { email, password, latitude, longitude } = req.body;
   const agent = useragent.parse(req.headers["user-agent"] || "");
@@ -111,7 +108,7 @@ exports.loginUser = async (req, res) => {
           info: maskEmail(tempUser.email),
           statusCode: RESPONSE_CODES.VERIFICATION_PENDING,
         });
-      }
+      } 
 
       if (!user) {
         const now = new Date();

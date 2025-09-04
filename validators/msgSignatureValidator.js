@@ -1,38 +1,14 @@
-const { body } = require('express-validator');
 
-const allowedSignatureTypes = ['sms', 'whatsapp']; // compare lowercase
-const allowedStatuses = ['Active', 'Inactive'];
+// File: signatureValidator.js
+
+const { body } = require('express-validator');
+const { handleValidation, requiredStringRule,optionalStatusRule, StatusRule, signatureTypeRule } = require("./commonValidators");
 
 const addOrUpdateSignatureValidator = [
-  body('signature')
-    .notEmpty().withMessage('Signature is required')
-    .isString().withMessage('Signature must be a string'),
-
-  body('signature_type')
-    .notEmpty().withMessage('Signature type is required')
-    .isString().withMessage('Signature type must be a string')
-    .custom(value => {
-      if (!allowedSignatureTypes.includes(value.toLowerCase())) {
-        throw new Error(`Invalid signature_type. Allowed types: SMS, Whatsapp`);
-      }
-      return true;
-    })
-    .customSanitizer(value => {
-      const lower = value.toLowerCase();
-      if (lower === 'sms') return 'SMS';
-      if (lower === 'whatsapp') return 'Whatsapp';
-      return value;
-    }),
-
-  body('status')
-    .notEmpty().withMessage('Status is required')
-    .custom(value => {
-      if (!allowedStatuses.includes(value.toLowerCase())) {
-        throw new Error(`Invalid status. Allowed: ${allowedStatuses.join(', ')}`);
-      }
-      return true;
-    })
-    .customSanitizer(value => value.toLowerCase())
+  requiredStringRule('signature'),
+  signatureTypeRule('signature_type'),
+  optionalStatusRule,
+  handleValidation
 ];
 
 module.exports = { addOrUpdateSignatureValidator };

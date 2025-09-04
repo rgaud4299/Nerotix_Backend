@@ -1,15 +1,26 @@
+
+// File: tokenValidator.js
+
 const { body, param } = require("express-validator");
-const { handleValidation } = require("../utils/handleValidation");
-
-
+const { handleValidation, idParamRule, optionalStatusRule, otpRule, tokenTypeRule } = require("./commonValidators");
 
 exports.generateTokenValidation = [
-  body("token_type").isIn(["app", "api"]).withMessage("token_type must be app or api"),
+  tokenTypeRule(),
   handleValidation,
 ];
 
 exports.TokenchangeStatusValidation = [
-  param("id").isInt({ gt: 0 }).withMessage("Invalid token ID"),
-  body("status").isIn(["Active", "Inactive"]).withMessage("status must be Active or Inactive"),
+  idParamRule("id", "Invalid token ID"),
+  optionalStatusRule,
   handleValidation,
 ];
+
+exports.OtpValidation = [
+  otpRule('otp'),
+  handleValidation,
+];
+
+
+
+
+
