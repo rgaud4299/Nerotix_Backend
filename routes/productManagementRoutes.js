@@ -25,55 +25,34 @@ const {
   updateProductPriceValidator,
   deleteProductPriceValidator,
 } = require('../validators/productManagement');
-const { idParamRule, idParamValid, handleValidation, convertId } = require('../validators/commonValidators');
+const { idParamRule, idParamValid, handleValidation } = require('../validators/commonValidators');
 
 
 const securedRoutes = createSecuredRoutes(authMiddleware, (router) => {
   // Product Category Routes
   router.post('/category/add', addProductCategoryValidation, productCategoryController.addProductCategory);
   router.post('/category/get-list', productCategoryController.getProductCategoryList);
-  router.get('/category/byid/:id',convertId, productCategoryController.getProductCategoryById);
+  router.get('/category/byid/:id',idParamValid, productCategoryController.getProductCategoryById);
   router.put('/category/update/:id',updateProductCategoryValidation, productCategoryController.updateProductCategory);
-  router.delete('/category/delete/:id', deleteCategoryValidation, productCategoryController.deleteProductCategory);
-  router.patch('/category/change-status/:id', changeCategoryStatusValidation, productCategoryController.changeProductCategoryStatus);
+  router.delete('/category/delete/:id',idParamValid, productCategoryController.deleteProductCategory);
+  router.patch('/category/change-status/:id', idParamValid, productCategoryController.changeProductCategoryStatus);
 
   // Product Routes
   router.post('/products/add', upload.single('icon'), addProductValidation, productController.addProduct);
   router.post('/products/get-list', productController.getProductList);
-  router.get('/products/byid/:id', productController.getProductById);
-  router.put('/products/update/:id', upload.single('icon'), updateProductValidation, productController.updateProduct);
-  router.delete('/products/delete/:id', deleteProductValidation, productController.deleteProduct);
-  router.patch('/products/change-status/:id', changeProductStatusValidation, productController.changeProductStatus);
+  router.get('/products/byid/:id',idParamValid, productController.getProductById);
+  router.put('/products/update/:id',upload.single('icon'), updateProductValidation, productController.updateProduct);
+  router.delete('/products/delete/:id', idParamValid, productController.deleteProduct);
+  router.patch('/products/change-status/:id', idParamValid, productController.changeProductStatus);
 
   // Product Price Routes
   router.post('/prices/add', createProductPriceValidator, productPriceController.addProductPrice);
   router.post('/prices/get-list', productPriceController.getProductPricingList);
-  router.get('/prices/byid/:id', productPriceController.getProductPriceById);
+  router.get('/prices/byid/:id',idParamValid, productPriceController.getProductPriceById);
   router.put('/prices/update/:id', updateProductPriceValidator, productPriceController.updateProductPrice);
-  router.delete('/prices/delete/:id', deleteProductPriceValidator, productPriceController.deleteProductPrice);
+  router.delete('/prices/delete/:id',idParamValid, deleteProductPriceValidator, productPriceController.deleteProductPrice);
 });
-  // Product Category Routes
-  router.post('/category/add', addProductCategoryValidation, productCategoryController.addProductCategory);
-  router.post('/category/get-list', productCategoryController.getProductCategoryList);
-  router.get('/category/byid/:id', productCategoryController.getProductCategoryById);
-  router.put('/category/update/:id', updateProductCategoryValidation, productCategoryController.updateProductCategory);
-  router.delete('/category/delete/:id', deleteCategoryValidation, productCategoryController.deleteProductCategory);
-  router.patch('/category/change-status/:id', changeCategoryStatusValidation, productCategoryController.changeProductCategoryStatus);
 
-  // Product Routes
-  router.post('/products/add', upload.single('icon'), addProductValidation, productController.addProduct);
-  router.post('/products/get-list', productController.getProductList);
-  router.get('/products/byid/:id', productController.getProductById);
-  router.put('/products/update/:id', upload.single('icon'), updateProductValidation, productController.updateProduct);
-  router.delete('/products/delete/:id', deleteProductValidation, productController.deleteProduct);
-  router.patch('/products/change-status/:id', changeProductStatusValidation, productController.changeProductStatus);
-
-  // Product Price Routes
-  router.post('/prices/add', createProductPriceValidator, productPriceController.addProductPrice);
-  router.post('/prices/get-list', productPriceController.getProductPricingList);
-  router.get('/prices/byid/:id', productPriceController.getProductPriceById);
-  router.put('/prices/update/:id', updateProductPriceValidator, productPriceController.updateProductPrice);
-  router.delete('/prices/delete/:id', deleteProductPriceValidator, productPriceController.deleteProductPrice);
-// router.use('/', securedRoutes);
+  router.use('/', securedRoutes);
 
 module.exports = router;

@@ -20,12 +20,8 @@ const ISTFormat = (d) => (d ? dayjs(d).tz('Asia/Kolkata').format('YYYY-MM-DD HH:
 module.exports = {
   // ADD product price
   async addProductPrice(req, res) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
 
-    const product_id = safeParseInt(req.body.product_id);
+    const product_id = (req.body.product_id);
     const price = parseFloat(req.body.price);
     const currency = (req.body.currency || '').trim();
 
@@ -70,11 +66,8 @@ module.exports = {
         created_by: req.user?.id || null
       }).catch((err) => console.error('Audit log failed:', err));
 
-      return res.status(200).json({
-        success: true,
-        statusCode: 1,
-        message: 'Product price added successfully',
-      });
+    return success(res, "Product price added successfully");
+
     } catch (err) {
       console.error('addProductPrice error:', err);
       return error(res, 'Server error');
@@ -83,10 +76,7 @@ module.exports = {
 
   // GET product pricing list
   async getProductPricingList(req, res) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
+
 
     const offset = safeParseInt(req.body.offset, 0);
     const limit = safeParseInt(req.body.limit, 10);
@@ -129,14 +119,6 @@ module.exports = {
       }));
 
 
-      // return res.status(200).json({
-      //   success: true,
-      //   statusCode: 1,
-      //   message: 'Data fetched successfully',
-      //   recordsTotal: total,
-      //   recordsFiltered: filteredCount,
-      //   data: formattedData, // Always array
-      // });
 
       return successGetAll(
         res,
@@ -153,11 +135,8 @@ module.exports = {
 
   // GET product price by ID
   async getProductPriceById(req, res) {
-    const id = safeParseInt(req.params.id);
-    if (!id) {
-      return error(res, 'Price ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
-
+    const id = (req.params.id);
+  
     try {
       const price = await prisma.product_pricing.findUnique({
         where: { id },
@@ -173,12 +152,9 @@ module.exports = {
       const formattedPrice = convertBigIntToString(price);
       formattedPrice.products = formattedPrice.products?.name || null;
 
-      return res.status(200).json({
-        success: true,
-        statusCode: 1,
-        message: 'Data fetched successfully',
-        data: formattedPrice,
-      });
+ 
+      return success(res, "Data fetched successfully", formattedPrice);
+
     } catch (err) {
       console.error('getProductPriceById error:', err);
       return error(res, 'Server error');
@@ -187,27 +163,12 @@ module.exports = {
 
   // UPDATE product price
   async updateProductPrice(req, res) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
 
-    const id = safeParseInt(req.params.id);
-    if (!id) {
-      return error(res, 'Price ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
 
+    const id = (req.params.id);
+ 
     const price = parseFloat(req.body.price);
     const currency = (req.body.currency || '').trim();
-
-    if (!price || !currency) {
-      return error(
-        res,
-        'Price and currency are required and must be valid',
-        RESPONSE_CODES.VALIDATION_ERROR,
-        422
-      );
-    }
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -261,11 +222,7 @@ module.exports = {
 
   // DELETE product price
   async deleteProductPrice(req, res) {
-    const id = safeParseInt(req.params.id);
-
-    if (!id) {
-      return error(res, 'Product Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
+    const id = (req.params.id);
 
     try {
       await prisma.$transaction(async (tx) => {

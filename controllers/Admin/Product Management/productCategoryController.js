@@ -22,8 +22,6 @@ function formatISTDate(date) {
 
 // Add Product Category
 exports.addProductCategory = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
 
     const { name, status } = req.body;
 
@@ -51,12 +49,11 @@ exports.addProductCategory = async (req, res) => {
             status,
         }).catch(err => console.error('Audit log failed:', err));
 
+        return success(
+            res,
+            'Product Category added successfully',
+        );
 
-        return res.status(200).json({
-            success: true,
-            statusCode: 1,
-            message: 'Product Category added successfully',
-        });
     } catch (err) {
         console.error(err);
         return error(res, 'Failed to add Product Category');
@@ -66,10 +63,7 @@ exports.addProductCategory = async (req, res) => {
 // Get list
 exports.getProductCategoryList = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty())
-            return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-
+   
         const offset = safeParseInt(req.body.offset, 0);
         const limit = safeParseInt(req.body.limit, 10);
         const searchValue = (req.body.searchValue || '').trim();
@@ -100,9 +94,9 @@ exports.getProductCategoryList = async (req, res) => {
             }),
         ]);
 
-        const safeData = convertBigIntToString(data);
+        const safeData = data;
         const formattedData = safeData.map((item, index) => ({
-            id: safeParseInt(item.id),
+            id: item.id,
             name: item.name,
             slug: item.slug,
             status: item.status,
@@ -111,14 +105,7 @@ exports.getProductCategoryList = async (req, res) => {
             serial_no: skip + index + 1,
         }));
 
-        // return res.status(200).json({
-        //     success: true,
-        //     statusCode: 1,
-        //     message: 'Data fetched successfully',
-        //     recordsTotal: total,
-        //     recordsFiltered: filteredCount,
-        //     data: formattedData,
-        // });
+      
         return successGetAll(
             res,
             'Data fetched successfully',
@@ -126,8 +113,6 @@ exports.getProductCategoryList = async (req, res) => {
             total,
             filteredCount
         );
-
-
     } catch (err) {
         console.error('getProductCategoryList error:', err);
         return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
@@ -137,7 +122,6 @@ exports.getProductCategoryList = async (req, res) => {
 
 exports.getProductCategoryById = async (req, res) => {
     const id = req.params.id;
-    if (!id) return error(res, 'Product Category Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
 
     try {
         const category = await prisma.product_categories.findUnique({
@@ -147,7 +131,7 @@ exports.getProductCategoryById = async (req, res) => {
         if (!category) return error(res, 'Product Category not found', RESPONSE_CODES.NOT_FOUND, 404);
         console.log("category", category);
 
-        return success(res,'Data fetched successfully', category);
+        return success(res, 'Data fetched successfully', category);
     } catch (err) {
         console.error(err);
         return error(res, 'Server error');
@@ -156,10 +140,8 @@ exports.getProductCategoryById = async (req, res) => {
 
 
 exports.updateProductCategory = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-    const id = safeParseInt(req.params.id);
+ 
+    const id = req.params.id;
     const { name, status } = req.body;
 
     if (!id || isNaN(id) || id <= 0) return error(res, 'Invalid or missing Product Category ID', RESPONSE_CODES.VALIDATION_ERROR, 422);
@@ -201,73 +183,66 @@ exports.updateProductCategory = async (req, res) => {
 
 // Delete category
 exports.deleteProductCategory = async (req, res) => {
-    const id = safeParseInt(req.params.id);
+    let { id } = req.params;
 
     try {
-        const relatedProducts = await prisma.products.count({ where: { category_id: id } });
-        if (relatedProducts > 0) return error(res, 'Cannot delete Product Category with assigned products', RESPONSE_CODES.FAILED, 400);
 
+        // 🔎 Check if category exists
+        const category = await prisma.product_categories.findUnique({
+            where: { id },
+            select: { id: true },
+        });
+
+        if (!category) {
+            return error(
+                res,
+                "Product Category Not Found",
+                RESPONSE_CODES.NOT_FOUND,
+                404
+            );
+        }
+
+        // 🔎 Check if category has assigned products
+        const relatedProducts = await prisma.products.count({
+            where: { category_id: id },
+        });
+
+        if (relatedProducts > 0) {
+            return error(
+                res,
+                "Cannot delete Product Category with assigned products",
+                RESPONSE_CODES.FAILED,
+                400
+            );
+        }
+
+        // ✅ Safe delete in transaction
         await prisma.$transaction(async (tx) => {
             await tx.product_categories.delete({ where: { id } });
-            await reorderSerials(tx, 'product_categories');
 
             logAuditTrail({
-                table_name: 'product_categories',
+                table_name: "product_categories",
                 row_id: id,
-                action: 'delete',
+                action: "delete",
                 user_id: req.user?.id ? Number(req.user.id) : null,
                 ip_address: req.ip,
                 remark: `Product category deleted`,
                 deleted_by: req.user?.id || null,
-                status: 'DELETED',
-            }).catch(err => console.error('Audit log failed:', err));
+                status: "DELETED",
+            }).catch((err) => console.error("Audit log failed:", err));
         });
 
-        return success(res, 'Product Category deleted successfully');
+        return success(res, "Product Category deleted successfully");
     } catch (err) {
-        console.error(err);
-        return error(res, 'Product Category Not Found', RESPONSE_CODES.NOT_FOUND, 404);
+        console.error("❌ deleteProductCategory Error:", err);
+        return error(res, "Something went wrong", RESPONSE_CODES.SERVER_ERROR, 500);
     }
 };
 
-// Change status
-// exports.changeProductCategoryStatus = async (req, res) => {
-//     const id = safeParseInt(req.params.id);
-//     const { status } = req.body;
 
-//     if (!id || isNaN(id) || id <= 0) return error(res, 'Invalid or missing product category ID', RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-//     try {
-//         const existingCategory = await prisma.product_categories.findUnique({ where: { id } });
-//         if (!existingCategory) return error(res, 'Product Category Not Found', RESPONSE_CODES.NOT_FOUND, 404);
-//         if (existingCategory.status === status) return error(res, 'Product category status is already the same', RESPONSE_CODES.DUPLICATE, 409);
-
-//         await prisma.product_categories.update({ where: { id }, data: { status } });
-
-//         logAuditTrail({
-//             table_name: 'product_categories',
-//             row_id: id,
-//             action: 'update',
-//             user_id: req.user?.id ? Number(req.user.id) : null,
-//             ip_address: req.ip,
-//             remark: `Status changed to ${status}`,
-//             updated_by: req.user?.id || null,
-//             status,
-//         }).catch(err => console.error('Audit log failed:', err));
-
-//         return success(res, 'Product Category status updated successfully');
-//     } catch (err) {
-//         console.error(err);
-//         return error(res, 'Server error');
-//     }
-// };
 
 exports.changeProductCategoryStatus = async (req, res) => {
-    const id = safeParseInt(req.params.id);
-
-    if (!id || isNaN(id) || id <= 0) {
-        return error(res, 'Invalid or missing product category ID', RESPONSE_CODES.VALIDATION_ERROR, 422);
-    }
+    const id = req.params.id;
 
     try {
         // Fetch existing category from DB

@@ -66,7 +66,7 @@ exports.addIp = async (req, res) => {
       },
     });
 
-    const formattedIP = convertBigIntToString({
+    const formattedIP = ({
       id: newIp.id,
       user_id: newIp.user_id,
       ip_address: newIp.ip_address,
@@ -87,22 +87,17 @@ exports.addIp = async (req, res) => {
 exports.getAllIp = async (req, res) => {
 
   try {
-    const user_id = String(req.user?.user_id || ""); // Always as String
-
+    const user_id = req.user?.user_id;
     if (!user_id) {
       return error(res, "User ID is required", RESPONSE_CODES.VALIDATION_ERROR, 422);
     }
-    // 1️⃣ Check if user already has 3 IPs
-    // Check if user exists in DB
     const existingUser = await prisma.users.findUnique({
-      where: { id: parseInt(user_id) },
+      where: { id: user_id },
     });
 
     if (!existingUser) {
       return error(res, "User not found in database", RESPONSE_CODES.NOT_FOUND, 404);
     }
-
-
     // get all IPs for this user
     const ipList = await prisma.user_ip_whitelist.findMany({
       where: { user_id },
@@ -117,15 +112,17 @@ exports.getAllIp = async (req, res) => {
     });
 
     // format data
-    const formatted = ipList.map((ip, index) => convertBigIntToString({
-      id: ip.id,
-      serial_no: index + 1,
-      user_id: ip.user_id,
-      ip_address: ip.ip_address,
-      status: ip.status,
-      created_at: ip.created_at ? ISTFormat(ip.created_at) : null,
-      updated_at: ip.updated_at ? ISTFormat(ip.updated_at) : null,
-    }));
+    const formatted = ipList.map((ip, index) => {
+      return {
+        id: ip.id,
+        serial_no: index + 1,
+        user_id: ip.user_id,
+        ip_address: ip.ip_address,
+        status: ip.status,
+        created_at: ip.created_at ? ISTFormat(ip.created_at) : null,
+        updated_at: ip.updated_at ? ISTFormat(ip.updated_at) : null,
+      }
+    });
 
     return res.status(200).json({
       success: true,
@@ -147,7 +144,6 @@ exports.changeStatus = async (req, res) => {
 
   const { id } = req.params;
 
-
   try {
     const ip = await prisma.user_ip_whitelist.findUnique({
       where: { id: parseInt(id) },
@@ -168,7 +164,7 @@ exports.changeStatus = async (req, res) => {
       },
     });
 
-    const formattedIP = convertBigIntToString({
+    const formattedIP =({
       id: updated.id,
       user_id: updated.user_id,
       ip_address: updated.ip_address,

@@ -25,12 +25,9 @@ const safeLogAuditTrail = async (params) => {
 
 //ADD PRODUCT 
 exports.addProduct = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
 
   try {
-    const category_id = safeParseInt(req.body.category_id);
+    const category_id = (req.body.category_id);
     const name = (req.body.name || '').trim();
     const description = req.body.description || '';
     const status = req.body.status || 'Inactive';
@@ -72,12 +69,12 @@ exports.addProduct = async (req, res) => {
       return created;
     });
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Product added successfully',
-    });
 
+    return success(
+      res,
+      'Product added successfully',
+
+    );
   } catch (err) {
     console.error('addProduct error:', err);
     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
@@ -163,15 +160,7 @@ exports.addProduct = async (req, res) => {
 
 exports.getProductList = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return error(
-        res,
-        errors.array()[0].msg,
-        RESPONSE_CODES.VALIDATION_ERROR,
-        422
-      );
-    }
+
 
     const offset = safeParseInt(req.body.offset, 0);
     const limit = safeParseInt(req.body.limit, 10);
@@ -225,14 +214,7 @@ exports.getProductList = async (req, res) => {
       updated_at: ISTFormat(p.updated_at)
     }));
 
-    // return res.status(200).json({
-    //   success: true,
-    //   statusCode: 1,
-    //   message: 'Data fetched successfully',
-    //   recordsTotal: total,
-    //   recordsFiltered: filteredCount,
-    //   data: formattedData
-    // });
+
 
     return successGetAll(
       res,
@@ -251,11 +233,8 @@ exports.getProductList = async (req, res) => {
 // GET PRODUCT BY ID 
 exports.getProductById = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-    const id = safeParseInt(req.params.id);
+ 
+    const id = (req.params.id);
 
     const product = await prisma.products.findUnique({
       where: { id },
@@ -263,7 +242,7 @@ exports.getProductById = async (req, res) => {
     });
     if (!product) return error(res, 'Product Not Found', RESPONSE_CODES.NOT_FOUND, 404);
 
-    const formattedProduct = convertBigIntToString({
+    const formattedProduct = ({
       id: product.id,
       serial_no: product.serial_no,
       category_id: product.category_id,
@@ -276,13 +255,8 @@ exports.getProductById = async (req, res) => {
       created_at: ISTFormat(product.created_at),
       updated_at: ISTFormat(product.updated_at)
     });
+    return success(res, "Data fetched successfully",formattedProduct);
 
-    return res.status(200).json({
-      success: true,
-      statusCode: 1,
-      message: 'Data fetched successfully',
-      data: formattedProduct,
-    });
 
   } catch (err) {
     console.error('getProductById error:', err);
@@ -291,47 +265,137 @@ exports.getProductById = async (req, res) => {
 };
 
 // UPDATE PRODUCT 
-exports.updateProduct = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
+// exports.updateProduct = async (req, res) => {
 
-  const id = safeParseInt(req.params.id);
-  if (!id) return error(res, 'Product ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+//   const id = (req.params.id);
+
+//   try {
+//     const { category_id: rawCategoryId, name: rawName, description = '', status = 'Inactive' } = req.body;
+//     const category_id = (rawCategoryId);
+//     const name = (rawName || '').trim();
+
+//     if (!category_id) return error(res, 'Category ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+//     if (!name) return error(res, 'Product name is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+
+//     const existing = await prisma.products.findUnique({ where: { id } });
+//     if (!existing) return error(res, 'Product not found', RESPONSE_CODES.NOT_FOUND, 404);
+
+//     const isSame =
+//       (existing.category_id) === (category_id) &&
+//       existing.name.toLowerCase() === name.toLowerCase() &&
+//       (existing.description || '').trim() === description.trim() &&
+//       existing.status.toLowerCase() === status.toLowerCase() &&
+//       !req.file;
+
+//     if (isSame) return error(res, 'No changes detected, product is already up-to-date', RESPONSE_CODES.DUPLICATE, 409);
+
+//     const duplicate = await prisma.products.findFirst({
+//       where: { id: { not: id }, category_id, name: { equals: name, mode: 'insensitive' } }
+//     });
+//     if (duplicate) return error(res, 'Another product with the same name exists in this category', RESPONSE_CODES.DUPLICATE, 409);
+
+//     let slug = slugify(name, { lower: true, strict: true });
+//     const slugExists = await prisma.products.findFirst({ where: { id: { not: id }, slug } });
+//     if (slugExists) slug = `${slug}-${Date.now()}`;
+
+//     const updatePayload = { name, slug, description, status, updated_at: new Date(), category_id };
+//     if (req.file) { const newImagePath = uploadImage(req.file, req); if (existing.icon) deleteImageIfExists(existing.icon); updatePayload.icon = newImagePath; }
+    
+//      const category = await prisma.product_categories.findUnique({ where: { id: category_id } });
+//     if (!category) {
+//       return error(res, 'Category not found', RESPONSE_CODES.NOT_FOUND, 404);
+//     }
+
+//     await prisma.$transaction(async (tx) => {
+//       safeLogAuditTrail({
+//         prisma: tx,
+//         table_name: 'products',
+//         row_id: id,
+//         action: 'update',
+//         user_id: req.user?.id || null,
+//         ip_address: req.ip,
+//         remark: `Product "${name}" updated`,
+//         updated_by: req.user?.id || null,
+//         status: null
+//       });
+//     });
+
+//     return success(res, 'Product updated successfully');
+//   } catch (err) {
+//     console.error('updateProduct error:', err);
+//     return error(res, 'Failed to update product', RESPONSE_CODES.FAILED, 500);
+//   }
+// };
+exports.updateProduct = async (req, res) => {
+  const id = req.params.id;
 
   try {
     const { category_id: rawCategoryId, name: rawName, description = '', status = 'Inactive' } = req.body;
-    const category_id = safeParseInt(rawCategoryId);
+    const category_id = rawCategoryId;
     const name = (rawName || '').trim();
 
-    if (!category_id) return error(res, 'Category ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-    if (!name) return error(res, 'Product name is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+    if (!category_id) {
+      return error(res, 'Category ID is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+    if (!name) {
+      return error(res, 'Product name is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
+    }
+
+    // 🔹 Check if category exists
+    const category = await prisma.product_categories.findUnique({ where: { id: category_id } });
+    if (!category) {
+      return error(res, 'Category not found', RESPONSE_CODES.NOT_FOUND, 404);
+    }
 
     const existing = await prisma.products.findUnique({ where: { id } });
-    if (!existing) return error(res, 'Product not found', RESPONSE_CODES.NOT_FOUND, 404);
+    if (!existing) {
+      return error(res, 'Product not found', RESPONSE_CODES.NOT_FOUND, 404);
+    }
 
     const isSame =
-      safeParseInt(existing.category_id) === safeParseInt(category_id) &&
+      existing.category_id === category_id &&
       existing.name.toLowerCase() === name.toLowerCase() &&
       (existing.description || '').trim() === description.trim() &&
       existing.status.toLowerCase() === status.toLowerCase() &&
       !req.file;
 
-    if (isSame) return error(res, 'No changes detected, product is already up-to-date', RESPONSE_CODES.DUPLICATE, 409);
+    if (isSame) {
+      return error(res, 'No changes detected, product is already up-to-date', RESPONSE_CODES.DUPLICATE, 409);
+    }
 
     const duplicate = await prisma.products.findFirst({
-      where: { id: { not: id }, category_id, name: { equals: name, mode: 'insensitive' } }
+      where: {
+        id: { not: id },
+        category_id,
+        name: { equals: name, mode: 'insensitive' }
+      }
     });
-    if (duplicate) return error(res, 'Another product with the same name exists in this category', RESPONSE_CODES.DUPLICATE, 409);
+    if (duplicate) {
+      return error(res, 'Another product with the same name exists in this category', RESPONSE_CODES.DUPLICATE, 409);
+    }
 
     let slug = slugify(name, { lower: true, strict: true });
     const slugExists = await prisma.products.findFirst({ where: { id: { not: id }, slug } });
     if (slugExists) slug = `${slug}-${Date.now()}`;
 
-    const updatePayload = { name, slug, description, status, updated_at: new Date(), category_id };
-    if (req.file) { const newImagePath = uploadImage(req.file, req); if (existing.icon) deleteImageIfExists(existing.icon); updatePayload.icon = newImagePath; }
+    const updatePayload = {
+      name,
+      slug,
+      description,
+      status,
+      updated_at: new Date(),
+      category_id
+    };
+
+    if (req.file) {
+      const newImagePath = uploadImage(req.file, req);
+      if (existing.icon) deleteImageIfExists(existing.icon);
+      updatePayload.icon = newImagePath;
+    }
+
+    await prisma.products.update({ where: { id }, data: updatePayload });
 
     await prisma.$transaction(async (tx) => {
-      await tx.products.update({ where: { id }, data: updatePayload });
       safeLogAuditTrail({
         prisma: tx,
         table_name: 'products',
@@ -346,8 +410,6 @@ exports.updateProduct = async (req, res) => {
     });
 
     return success(res, 'Product updated successfully');
-
-
   } catch (err) {
     console.error('updateProduct error:', err);
     return error(res, 'Failed to update product', RESPONSE_CODES.FAILED, 500);
@@ -356,10 +418,8 @@ exports.updateProduct = async (req, res) => {
 
 // DELETE PRODUCT 
 exports.deleteProduct = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
 
-  const id = safeParseInt(req.params.id);
+  const id = (req.params.id);
 
   try {
     const product = await prisma.products.findUnique({ where: { id } });
@@ -369,7 +429,6 @@ exports.deleteProduct = async (req, res) => {
 
     await prisma.$transaction(async (tx) => {
       await tx.products.delete({ where: { id } });
-      await reorderSerials(tx, 'products');
       safeLogAuditTrail({
         prisma: tx,
         table_name: 'products',
@@ -391,50 +450,9 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// CHANGE PRODUCT STATUS 
-// exports.changeProductStatus = async (req, res) => {
-//   const errors = validationResult(req);
-//   if (!errors.isEmpty()) return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-//   const id = safeParseInt(req.params.id);
-//   const { status } = req.body;
-//   if (!id) return error(res, 'Product Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-//   const validStatuses = ['Active', 'Inactive'];
-//   if (!validStatuses.includes(status)) return error(res, 'Invalid status value', RESPONSE_CODES.VALIDATION_ERROR, 422);
-
-//   try {
-//     const product = await prisma.products.findUnique({ where: { id } });
-//     if (!product) return error(res, 'Product Not Found', RESPONSE_CODES.NOT_FOUND, 404);
-//     if (product.status === status) return error(res, 'Product status is already up-to-date', RESPONSE_CODES.DUPLICATE, 409);
-
-//     await prisma.products.update({ where: { id }, data: { status, updated_at: new Date() } });
-
-//     safeLogAuditTrail({
-//       table_name: 'products',
-//       row_id: id,
-//       action: 'update',
-//       user_id: req.user?.id || null,
-//       ip_address: req.ip,
-//       remark: `Product "${product.name}" status changed from "${product.status}" to "${status}"`,
-//       updated_by: req.user?.id || null,
-//       status
-//     });
-
-//     return success(res, 'Product status updated successfully');
-
-//   } catch (err) {
-//     console.error('changeProductStatus error:', err);
-//     return error(res, 'Server error', RESPONSE_CODES.FAILED, 500);
-//   }
-// };
-
 
 exports.changeProductStatus = async (req, res) => {
-  const id = safeParseInt(req.params.id);
-  if (!id || id <= 0) {
-    return error(res, 'Product Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-  }
+  const id = req.params.id;
 
   try {
     // Fetch the product from DB

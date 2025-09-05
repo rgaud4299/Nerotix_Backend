@@ -21,7 +21,7 @@ const securedRoutes = createSecuredRoutes([authMiddleware], (router) => {
  // all whitelisted IPs
 router.post("/whitelisted-ip/add",addIpValidation, userIpWhitelistController.addIp);  // Add new whitelist entry
 router.get("/whitelisted-ip/get-list", userIpWhitelistController.getAllIp);      // GET all whitelisted IPs
-router.put("/whitelisted-ip/change-status/:id",idParamValid,userIpWhitelistController.changeStatus);          // Update whitelist entry
+router.patch("/whitelisted-ip/change-status/:id",idParamValid,userIpWhitelistController.changeStatus);          // Update whitelist entry
 router.delete("/whitelisted-ip/delete/:id",idParamValid, userIpWhitelistController.deleteIp);       // Delete whitelist entry
 // webhook
 router.put('/webhook/update',validate.update, ctrl.update);
@@ -32,7 +32,7 @@ router.get("/tokens/generate", generateTokenValidation, controller.generateToken
 router.get("/tokens/get-list", controller.getTokensByUserId);
 
 router.get("/tokens/send-otp",generateTokenOTP);
-router.post("/tokens/verify-otp/change-status",OtpValidation, verifyTokenOtpController);
+router.patch("/tokens/verify-otp/change-status",OtpValidation, verifyTokenOtpController);
 });
 
 

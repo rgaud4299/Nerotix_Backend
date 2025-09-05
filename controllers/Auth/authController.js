@@ -198,6 +198,9 @@ exports.loginUser = async (req, res) => {
       data: { ...historyBase, status: "Success" },
     });
 
+    setTimeout(() => {
+      
+   
     return res.status(200).json({
       success: true,
       statusCode: 1,
@@ -212,12 +215,13 @@ exports.loginUser = async (req, res) => {
       device: agent.toString ? agent.toString() : "",
       message: "Login successful",
     });
+     },0);
   } catch (err) {
     console.error("Login error:", err);
     return error(res, "Server error", RESPONSE_CODES.FAILED, 500);
-  }
+  } 
 };
-
+  
 
 //VERIFY OTP
 exports.verifyOtp = async (req, res) => {
@@ -349,7 +353,7 @@ exports.verifyOtp = async (req, res) => {
 exports.logoutUser = async (req, res) => {
   try {
     const user_id = req.user?.user_id; // correct destructuring
-    const { all_device } = req.body; // optional param
+    const { all_device = false } = req.body || {};
 
     const token = req.headers["authorization"]?.replace("Bearer ", "");
     if (!token) {

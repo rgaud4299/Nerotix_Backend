@@ -6,18 +6,42 @@ const { RESPONSE_CODES } = require("../utils/helper");
 
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
-   if (!errors.isEmpty()) {
-    return error(res,errors.array()[0].msg,RESPONSE_CODES.VALIDATION_ERROR,422 );
+  if (!errors.isEmpty()) {
+    return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
   }
   next();
 };
 
-const idParamRule = (name = 'id', msg = 'Valid positive numeric ID is required') => param(name)
-  .isInt({ gt: 0 }).withMessage(msg);
+// const idParamRule = (name = 'id', msg = 'Valid positive numeric ID is required') => param(name)
+//    .matches(/^[1-9][0-9]*$/) 
+//     .withMessage(msg)
+//     .customSanitizer((value) => BigInt(value)); 
 
-const idBodyRule = (name = 'id', msg = 'Valid positive numeric ID is required') => body(name)
-  .notEmpty().withMessage(`${name} is required`)
-  .isInt({ gt: 0 }).withMessage(msg);
+const idParamRule = (
+  name = "id",
+  msg = "Valid positive numeric ID is required"
+) =>
+  param(name).custom((value, { req }) => {
+    if (!/^[1-9][0-9]*$/.test(value)) {
+      throw new Error(msg); // 
+    }
+    req.params[name] = BigInt(value); // ✅ valid -> convert to BigInt
+    return true;
+  });
+
+
+const idBodyRule = (name = 'id', msg = 'Valid positive numeric ID is required') =>
+  body(name)
+    .matches(/^[1-9][0-9]*$/)
+    .withMessage(msg)
+    .customSanitizer((value) => {
+      try {
+        return BigInt(value);
+      } catch {
+        return value; 
+      }
+    });
+
 
 const requiredStringRule = (name, msg = `${name} is required`) => body(name)
   .trim()
@@ -66,7 +90,7 @@ const userIdBodyRule = (name = 'user_id', msg = 'Valid positive numeric user ID 
   .notEmpty().withMessage(`${name} is required`)
   .isInt({ gt: 0 }).withMessage(msg);
 
-  const textRule = (field, max) => body(field)
+const textRule = (field, max) => body(field)
   .optional()
   .isString().withMessage(`${field} must be a string`)
   .isLength({ max }).withMessage(`${field} must be at most ${max} characters`)
@@ -75,18 +99,7 @@ const userIdBodyRule = (name = 'user_id', msg = 'Valid positive numeric user ID 
 const idParamValid = [idParamRule(), handleValidation];
 // middleware/convertId.js
 
-function convertId(req, res, next) {
-  console.log("req.params",req.params);
-  
-  if (req.params && req.params.id) {
-    try {
-      req.params.id = BigInt(req.params.id);
-    } catch (e) {
-      return res.status(400).json({ error: "Invalid ID format" });
-    }
-  }
-  next();
-}
+
 
 
 
@@ -107,5 +120,4 @@ module.exports = {
   userIdBodyRule,
   idParamValid,
   textRule,
-  convertId
 };

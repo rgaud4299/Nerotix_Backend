@@ -145,11 +145,8 @@ exports.getMsgApiList = async (req, res) => {
 
 // Get API by ID
 exports.getMsgApiById = async (req, res) => {
-  const id = safeParseInt(req.params.id);
+  const id = (req.params.id);
 
-  if (!id || id <= 0) {
-    return error(res, 'Message API Id is required', RESPONSE_CODES.VALIDATION_ERROR, 422);
-  }
 
   try {
     const api = await prisma.msg_apis.findUnique({
@@ -163,7 +160,7 @@ exports.getMsgApiById = async (req, res) => {
       return error(res, 'Message API Not Found', RESPONSE_CODES.NOT_FOUND, 404);
     }
 
-    const safeApi = convertBigIntToString(api);
+    const safeApi =(api);
 
     return success(res, 'Data fetched successfully', {
       ...safeApi,
@@ -180,12 +177,9 @@ exports.getMsgApiById = async (req, res) => {
 // Update API
 exports.updateMsgApi = async (req, res) => {
 
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return error(res, errors.array()[0].msg, RESPONSE_CODES.VALIDATION_ERROR, 422);
-  }
 
-  const id = safeParseInt(req.params.id);
+
+  const id = (req.params.id);
   if (!id || id <= 0) {
     return error(res, 'Invalid or missing ID', RESPONSE_CODES.VALIDATION_ERROR, 422);
   }
@@ -199,7 +193,6 @@ exports.updateMsgApi = async (req, res) => {
 
       const api = await tx.msg_apis.findUnique({ where: { id } });
       if (!api) throw new Error('API_NOT_FOUND');
-
 
       const duplicate = await tx.msg_apis.findFirst({
         where: {
